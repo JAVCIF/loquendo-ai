@@ -1,11 +1,17 @@
 # Al subir una etiqueta vX.Y.Z crea el release con el instalador y la portable (scripts\publicar.ps1 -Instalador).
-# «Run workflow» (workflow_dispatch) hace lo mismo sin publicar: deja los paquetes como artefactos para probarlos.
+# «Run workflow» (workflow_dispatch) compila los mismos paquetes y los deja como artefactos para probarlos; marcando
+# «publicar» también crea la etiqueta v<versión de Directory.Build.props> y el release sobre el commit elegido.
 name: Release
 
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      publicar:
+        description: 'Crear la etiqueta y el release en GitHub (si no, solo artefactos de prueba)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -91,10 +97,12 @@ jobs:
           retention-days: 14
 
       - name: Release en GitHub
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || inputs.publicar
         uses: softprops/action-gh-release@v2
         with:
-          name: Loquendo AI ${{ github.ref_name }}
+          tag_name: v${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Loquendo AI v${{ steps.version.outputs.version }}
           body_path: artifacts/release-notes.md
           files: |
             artifacts/LoquendoAI_v${{ steps.version.outputs.version }}_setup.exe
