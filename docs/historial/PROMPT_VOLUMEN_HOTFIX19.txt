@@ -1,0 +1,9 @@
+# Sustituye los nombres por tu fondo, música, SFX, video CON AUDIO y personaje catalogados.
+# Comprueba tres pistas separadas en VEGAS y el porcentaje almacenado en cada bloque.
+[FONDO] calle
+[MUSICA] ambiente.mp3 | volumen=15
+[SFX] efecto.wav | esperar=no | volumen=45
+[VIDEO] clip-con-audio.mp4 | capa=sobre | duracion=3000 | volumen=65
+Bart: La música, el efecto y el video suenan por debajo de mi voz.
+[SFX] efecto.wav | esperar=si | volumen=150
+Bart: El segundo efecto se amplificó y esperé a que terminara.

@@ -1,0 +1,39 @@
+name: "✨ Idea o mejora"
+description: Proponer una función nueva o un cambio.
+labels: ["mejora"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: ¿Qué problema resuelve?
+      description: Cuéntalo con tus palabras («para hacer X ahora tengo que…»).
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: ¿Cómo te lo imaginas?
+      description: Pestaña, botón, opción del Editor o línea del Director (por ejemplo `[CAMARA] …`).
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Afecta a…
+      options:
+        - label: La preview MP4
+        - label: La exportación a VEGAS
+        - label: El Director / Director IA
+        - label: El formato del proyecto (base de datos)
+        - label: Las voces (TTS / transcripción)
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas que probaste
+  - type: dropdown
+    id: help
+    attributes:
+      label: ¿Te gustaría implementarlo?
+      options:
+        - No, solo la idea
+        - Sí, con un pull request

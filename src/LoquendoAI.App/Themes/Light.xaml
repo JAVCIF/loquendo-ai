@@ -1,0 +1,70 @@
+<!-- Tema claro de Loquendo AI: rojo y blanco. Generado desde la misma tabla que el otro tema:
+     los dos definen exactamente las mismas claves (ThemeManager cambia uno por otro en vivo). -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="Theme.WindowBackground" Color="#F4F4F6"/>  <!-- fondo de las ventanas -->
+    <SolidColorBrush x:Key="Theme.Surface" Color="#FFFFFF"/>  <!-- paneles, tablas, listas -->
+    <SolidColorBrush x:Key="Theme.SurfaceAlt" Color="#FBF6F6"/>  <!-- tarjetas y franjas -->
+    <SolidColorBrush x:Key="Theme.Border" Color="#DDD9DC"/>  <!-- bordes -->
+    <SolidColorBrush x:Key="Theme.Text" Color="#1D1D21"/>  <!-- texto -->
+    <SolidColorBrush x:Key="Theme.TextMuted" Color="#6B6B75"/>  <!-- texto secundario -->
+    <SolidColorBrush x:Key="Theme.Accent" Color="#D7141A"/>  <!-- rojo Loquendo -->
+    <SolidColorBrush x:Key="Theme.AccentHover" Color="#B81116"/>
+    <SolidColorBrush x:Key="Theme.AccentPressed" Color="#930D11"/>
+    <SolidColorBrush x:Key="Theme.AccentText" Color="#FFFFFF"/>  <!-- texto sobre rojo -->
+    <SolidColorBrush x:Key="Theme.AccentSoft" Color="#FCE8E8"/>  <!-- rojo muy suave (hover, marcas) -->
+    <SolidColorBrush x:Key="Theme.Input" Color="#FFFFFF"/>  <!-- campos de texto y combos -->
+    <SolidColorBrush x:Key="Theme.InputBorder" Color="#C9C6CC"/>
+    <SolidColorBrush x:Key="Theme.InputHoverBorder" Color="#E0666A"/>
+    <SolidColorBrush x:Key="Theme.Selection" Color="#D7141A"/>  <!-- fila o elemento seleccionado -->
+    <SolidColorBrush x:Key="Theme.SelectionText" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Theme.InactiveSelection" Color="#F3C5C6"/>  <!-- selección sin foco -->
+    <SolidColorBrush x:Key="Theme.InactiveSelectionText" Color="#1D1D21"/>
+    <SolidColorBrush x:Key="Theme.GridHeader" Color="#D7141A"/>  <!-- cabecera de tablas -->
+    <SolidColorBrush x:Key="Theme.GridHeaderText" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Theme.GridHeaderSeparator" Color="#E8585C"/>
+    <SolidColorBrush x:Key="Theme.GridLine" Color="#EFE3E4"/>
+    <SolidColorBrush x:Key="Theme.Row" Color="#FFFFFF"/>  <!-- filas: blanco… -->
+    <SolidColorBrush x:Key="Theme.RowAlt" Color="#FDF0F0"/>  <!-- …y rojo muy suave, alternadas -->
+    <SolidColorBrush x:Key="Theme.RowHover" Color="#FAD9DA"/>
+    <SolidColorBrush x:Key="Theme.ScrollTrack" Color="#EEEDF0"/>  <!-- barras de desplazamiento -->
+    <SolidColorBrush x:Key="Theme.ScrollThumb" Color="#C5C3CB"/>
+    <SolidColorBrush x:Key="Theme.ScrollThumbHover" Color="#D7141A"/>
+    <SolidColorBrush x:Key="Theme.SliderTrack" Color="#DCD8DE"/>  <!-- línea de tiempo y deslizadores: parte sin recorrer -->
+    <SolidColorBrush x:Key="Theme.SliderThumbRing" Color="#FFFFFF"/>  <!-- aro de la bolita -->
+    <SolidColorBrush x:Key="Theme.PlayerBar" Color="#F6EFEF"/>  <!-- barra de controles de la preview -->
+    <SolidColorBrush x:Key="Theme.Warning" Color="#E39B0B"/>  <!-- icono de aviso en los mensajes -->
+    <SolidColorBrush x:Key="Theme.Info" Color="#55555F"/>  <!-- icono de información en los mensajes -->
+    <SolidColorBrush x:Key="Theme.TabStrip" Color="#FFFFFF"/>  <!-- franja de pestañas -->
+    <SolidColorBrush x:Key="Theme.TabText" Color="#3A3A40"/>
+    <SolidColorBrush x:Key="Theme.TabHover" Color="#FCE8E8"/>
+    <SolidColorBrush x:Key="Theme.HeaderBar" Color="#D7141A"/>  <!-- cabecera de la ventana -->
+    <SolidColorBrush x:Key="Theme.HeaderBarText" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Theme.HeaderBarMuted" Color="#FFD9DA"/>
+    <SolidColorBrush x:Key="Theme.HeaderBarButton" Color="#26FFFFFF"/>  <!-- botones sobre la cabecera -->
+    <SolidColorBrush x:Key="Theme.HeaderBarButtonHover" Color="#4DFFFFFF"/>
+    <SolidColorBrush x:Key="Theme.ToolTip" Color="#2A2A2E"/>
+    <SolidColorBrush x:Key="Theme.ToolTipText" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Theme.ButtonBackground" Color="#FFFFFF"/>  <!-- botones -->
+    <SolidColorBrush x:Key="Theme.ButtonHover" Color="#FCE8E8"/>
+    <SolidColorBrush x:Key="Theme.ButtonPressed" Color="#F6CFD0"/>
+    <SolidColorBrush x:Key="Theme.ButtonBorder" Color="#D3CFD4"/>
+    <SolidColorBrush x:Key="Theme.Splitter" Color="#E6E1E3"/>  <!-- divisores arrastrables -->
+    <SolidColorBrush x:Key="Theme.StatusBar" Color="#FFFFFF"/>  <!-- barra de estado -->
+    <!-- Colores del sistema que usan las plantillas estándar de WPF (selección de celdas, esquinas de scroll…). -->
+    <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#FBF6F6"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#1D1D21"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#1D1D21"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.GrayTextBrushKey}" Color="#6B6B75"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#D7141A"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#F3C5C6"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#1D1D21"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="#1D1D21"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlLightBrushKey}" Color="#DDD9DC"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlDarkBrushKey}" Color="#DDD9DC"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.InfoBrushKey}" Color="#2A2A2E"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.InfoTextBrushKey}" Color="#FFFFFF"/>
+</ResourceDictionary>

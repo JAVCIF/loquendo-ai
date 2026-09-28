@@ -1,0 +1,14 @@
+PRUEBA DIRECTOR IA (requiere un personaje Bart con voz y recursos de calle/Bart catalogados)
+
+Bart entra caminando por una calle y luego habla mirando a cámara. Usa una imagen individual de Bart, no una hoja de sprites. El fondo debe desplazarse lentamente 70 píxeles a la izquierda durante 3 segundos. Bart comienza a la derecha y su render se mueve 250 píxeles a la izquierda y 30 píxeles hacia arriba, mientras gira 12 grados en sentido horario durante 3 segundos. Luego mantenlo en su posición final mientras habla: "Hoy sí llegué a tiempo". Usa música ambiental suave solo si hay una pista ambiental catalogada.
+
+PRUEBA DETERMINISTA EN DIRECTOR (PROMPT POR BLOQUES)
+Sustituye <fondo catalogado> y <render catalogado> por recursos reales:
+
+[FONDO] <fondo catalogado> | animar x=-70 | animar ms=3000
+[MOSTRAR] Bart | <render catalogado> | medio cuerpo | derecha | animar x=-250 | animar y=-30 | animar giro=12 | animar ms=3000
+Bart: Hoy sí llegué a tiempo.
+[PAUSA] 800
+
+En el editor, X, Y y rotación mantienen su sentido de posición inicial. Animar X/Y/giro indican el cambio desde ese punto; animar ms=0 usa todo el tiempo visible de la capa.
+Exporta a VEGAS y comprueba que los medios animados son MOV con alfa y muestran el mismo movimiento que la preview. El movimiento está integrado en el medio; no son keyframes nativos de VEGAS.

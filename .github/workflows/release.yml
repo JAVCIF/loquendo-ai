@@ -1,0 +1,101 @@
+# Al subir una etiqueta vX.Y.Z crea el release con el instalador y la portable (scripts\publicar.ps1 -Instalador).
+# «Run workflow» (workflow_dispatch) hace lo mismo sin publicar: deja los paquetes como artefactos para probarlos.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Instalador y portable
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Versión
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content Directory.Build.props
+          $version = ($props.Project.PropertyGroup | ForEach-Object { $_.Version } | Where-Object { $_ } | Select-Object -First 1)
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
+            throw "La etiqueta $env:GITHUB_REF_NAME no coincide con la versión v$version de Directory.Build.props"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          $found = Get-ChildItem "${env:ProgramFiles(x86)}", "$env:ProgramFiles" -Directory -Filter 'Inno Setup *' -ErrorAction SilentlyContinue |
+            Where-Object { Test-Path (Join-Path $_.FullName 'ISCC.exe') }
+          if (-not $found) { choco install innosetup -y --no-progress }
+
+      - name: Publicar (exe, portable con transcripción y FFmpeg, instalador)
+        # Windows PowerShell 5.1, igual que en el PC de quien publica a mano.
+        shell: powershell
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: .\scripts\publicar.ps1 -Instalador
+
+      - name: Comprobar paquetes
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $zip = "artifacts/LoquendoAI_v${version}_portable_win-x64.zip"
+          $setup = "artifacts/LoquendoAI_v${version}_setup.exe"
+          foreach ($file in $zip, $setup) { if (-not (Test-Path $file)) { throw "Falta $file" } }
+          Get-ChildItem artifacts -File | ForEach-Object { '{0,-50} {1,8:N1} MB' -f $_.Name, ($_.Length / 1MB) }
+
+      - name: Notas del release
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $changelog = Get-Content CHANGELOG.md -Raw -Encoding UTF8
+          $match = [regex]::Match($changelog, "(?ms)^## v$([regex]::Escape($version)) .*?(?=^## v|\z)")
+          $section = if ($match.Success) { $match.Value.Trim() } else { "## v$version" }
+          $notes = @"
+          $section
+
+          ---
+
+          ### Descargas
+
+          | Archivo | Qué es |
+          | --- | --- |
+          | ``LoquendoAI_v${version}_setup.exe`` | **Instalador** para tu usuario (no pide administrador), con accesos directos y desinstalador. |
+          | ``LoquendoAI_v${version}_portable_win-x64.zip`` | **Portable**: descomprime y abre ``LoquendoAI.exe``; la configuración queda en ``datos\``. |
+
+          Ambos traen .NET, la transcripción local (Python + faster-whisper) y FFmpeg. Tú solo instalas **Loquendo TTS 7**
+          y/o tus voces SAPI 5 y, para voces SAPI 4, **BALCON**: https://www.cross-plus-a.com/es/bconsole.htm
+          (extrae el ZIP completo en ``tools\balcon\``). Más en el [README](https://github.com/${{ github.repository }}#instalación).
+          "@
+          $notes = ($notes -split "`n" | ForEach-Object { $_ -replace '^          ', '' }) -join "`n"
+          Set-Content -Path artifacts/release-notes.md -Value $notes -Encoding UTF8
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LoquendoAI_v${{ steps.version.outputs.version }}
+          path: |
+            artifacts/*_setup.exe
+            artifacts/*_portable_win-x64.zip
+          retention-days: 14
+
+      - name: Release en GitHub
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Loquendo AI ${{ github.ref_name }}
+          body_path: artifacts/release-notes.md
+          files: |
+            artifacts/LoquendoAI_v${{ steps.version.outputs.version }}_setup.exe
+            artifacts/LoquendoAI_v${{ steps.version.outputs.version }}_portable_win-x64.zip

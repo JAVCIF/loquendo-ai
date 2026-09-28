@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Pruebas de LoquendoAI sin paquetes externos (no hace falta xUnit ni NUnit).
+    Es una consola: scripts\pruebas.cmd ejecuta todo y el código de salida es el número de fallos.
+    Un argumento filtra por nombre, por ejemplo: scripts\pruebas.cmd RepositoryTests
+    Las pruebas que necesitan FFmpeg (render y exportación a VEGAS) se omiten si no está en el PATH.
+    (Los comentarios XML no admiten dos guiones seguidos: por eso aquí no aparece la línea de dotnet run.)
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>LoquendoAI.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\LoquendoAI.Core\LoquendoAI.Core.csproj" />
+    <ProjectReference Include="..\..\src\LoquendoAI.Infrastructure\LoquendoAI.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

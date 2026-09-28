@@ -1,0 +1,28 @@
+PRUEBA · v1.3.0 (ícono, ChatGPT, IA de medios, mensajes con el tema, publicar)
+
+A. Compilar y abrir
+1. dotnet build .\LoquendoAI.sln y abre la app: ícono de la bolita en la ventana, la barra de tareas y Alt+Tab.
+   Abre «Configurar IA», «Editar etiquetas…» o «Prompt maestro…»: también lo llevan.
+
+B. Mensajes con el tema
+2. En tema oscuro provoca un aviso (p. ej. Diálogos → Exportar a escenas sin líneas, o Voice Lab → borrar el
+   perfil NPC): la ventana es oscura, con botones en español; Esc cierra; Ctrl+C copia el texto. Cambia a claro.
+3. Diálogos → «Formato recomendado…»: «Copiar ejemplo» ya no sale blanco.
+
+C. ChatGPT
+4. Configurar IA → ChatGPT (OpenAI): pega la clave → «Guardar clave y consultar». Marca un modelo (p. ej.
+   gpt-4.1-mini o gpt-5-mini) y úsalo en Director IA, en Diálogos → Generar con IA y en Visión (Biblioteca).
+
+D. Biblioteca
+5. Filtra (p. ej. tipo Fondo, Buscar). Sin seleccionar nada pulsa «IA: analizar imágenes seleccionadas»: pregunta
+   si hacer todo el filtro. Con 1 seleccionada: pregunta filtro o solo esa. Con 2+: solo esas, sin preguntar.
+6. «Editar etiquetas…» de una analizada: la descripción de la IA aparece («escrito por la IA»).
+7. Selecciona música y SFX con nombres claros (y alguno tipo «track01») → «IA: analizar medios seleccionados».
+   Mira las descripciones. Si hay Gemini configurado, acepta escuchar los que el nombre no dijo nada.
+8. Pulsa otra vez lo mismo: los ya analizados se omiten.
+9. Si puedes, prueba con una clave sin saldo: debe parar con un mensaje de cuota y conservar lo hecho.
+
+E. Publicar
+10. scripts\publicar.cmd → artifacts\LoquendoAI_v1.3.0_portable\LoquendoAI.exe y el .zip. Abre el .exe portable:
+    su configuración queda en «datos\» junto al .exe. Las voces deben funcionar (tts-bridge\).
+11. Opcional: con Inno Setup 6 instalado, scripts\publicar.cmd -Instalador → artifacts\LoquendoAI_v1.3.0_setup.exe.

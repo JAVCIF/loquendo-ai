@@ -1,0 +1,26 @@
+PRUEBA · v1.0.0-beta.2 (si algo falla, adjunta %LOCALAPPDATA%\LoquendoAI\ia-diagnostico.log y errores.log)
+
+A. Selector de recursos del borrador (el bug)
+1. Genera un borrador (Director IA o Director prompt) con varias filas [IMAGEN]/[FONDO], algunas con opciones
+   («[IMAGEN] x | duracion=2000») y otras sin ellas.
+2. Selecciona una fila CON opciones → «Elegir recurso de fila…» → elige otro. La celda cambia al instante a su ID.
+   Repite con una fila SIN opciones, luego otra vez con una con opciones, alternando 5–6 veces.
+   Ninguna otra fila debe cambiar. Pulsa «Validar edición»: las filas elegidas deben quedar «Listo».
+3. Edita a mano el texto de una fila (p. ej. duracion=3000) y SIN salir de la celda pulsa «Elegir recurso de fila…».
+   El recurso debe aplicarse a esa fila y conservar tu duracion=3000.
+4. Biblioteca: edita «Descripción IA» de un recurso y luego selecciona varios con Ctrl: la selección debe ser la que ves.
+
+B. Continuidad de episodio
+5. Director IA → «Generar episodio» con una premisa de 3 escenas donde 2 seguidas ocurran en el mismo lugar.
+   En la 2.ª escena del mismo lugar, el fondo y los renders deberían repetirse. En ia-diagnostico.log no debe haber errores.
+
+C. Gemini (si lo usas)
+6. Genera con un modelo Gemini. Si Google devuelve 429/503 verás «Reintento 2/4 en N s…» en vez de un error inmediato.
+   En ia-diagnostico.log aparece una línea «gemini … intentos=… tokens prompt=…».
+
+D. Copias y limpieza
+7. Abre un proyecto: debe aparecer <proyecto>\backups\project_AAAAMMDD_HHMMSS_auto.db (una por día).
+   Pulsa «Copia de seguridad»: crea otra «_manual» y abre la carpeta. Abre esa copia con DB Browser for SQLite si quieres
+   comprobar que tiene tus escenas.
+8. «Limpiar caché…»: revisa el resumen (previews antiguas, voces sin uso…), acepta y comprueba que la preview actual
+   y las voces del guion siguen funcionando (Generar voces → todo «reutilizadas»; preview → se ve).

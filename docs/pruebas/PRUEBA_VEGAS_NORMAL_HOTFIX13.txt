@@ -1,0 +1,24 @@
+Prueba de exportación VEGAS: Normal / Legacy
+===========================================
+
+1. Ejecuta dotnet build en Windows. En una escena, usa un fondo, el render de
+   Bart 9027, otro render de Bart, una imagen/GIF y un vídeo sin alfa.
+2. Pon a Bart a la izquierda y después a la derecha, con inversión horizontal,
+   giro, movimiento X/Y y un cruce. Exporta Normal a 720p.
+3. Abre escena.json: cada clip apto debe tener Native con coordenadas y
+   ImportPath nulo. Los PNG aptos no deben generar medios_normalizados.
+4. Ejecuta Abrir_en_VEGAS_14_o_superior.cs en un proyecto vacío. En cada evento,
+   la toma activa debe apuntar al recurso original y Pan/Crop debe mostrar el
+   ajuste de proporción y las claves de movimiento. Examina un corte, un cruce,
+   la inversión y los fotogramas antes/después del giro.
+5. Prueba un fondo con animación, un GIF animado y un vídeo sin alfa; comprueba
+   en VEGAS que cada GIF se reproduce (su lector puede variar por versión).
+6. Incluye un vídeo con alfa y otro marcado para eliminar verde. Deben ser
+   excepciones: toma activa procesada y toma original de respaldo.
+7. Exporta Legacy y compara: mantiene los lienzos PNG/MOV procesados como toma
+   activa y las rutas a los medios originales como segunda toma.
+8. El PNG Bart 9027 puede generar un archivo de compatibilidad para el análisis
+   FFmpeg, pero Normal debe apuntar al PNG original dentro del script VEGAS.
+
+Si aparece un error de VEGAS, conserva el texto exacto y comparte el
+%LOCALAPPDATA%\LoquendoAI\errores.log cuando el error sea de Loquendo AI.

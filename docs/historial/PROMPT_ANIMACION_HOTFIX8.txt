@@ -1,0 +1,9 @@
+PRUEBA DETERMINISTA HOTFIX 8 — DIRECTOR (PROMPT POR BLOQUES)
+Sustituye los nombres entre <> por recursos de tu biblioteca. El render debe ser una imagen individual, no una hoja de sprites.
+
+[FONDO] <fondo calle> | animar x=-70 | animar ms=3000
+[MOSTRAR] Bart | <render individual de Bart> | medio cuerpo | derecha | animar x=-250 | animar y=-30 | animar giro=12 | animar ms=3000
+Bart: Hoy sí llegué a tiempo.
+[PAUSA] 800
+
+Exporta a VEGAS en una carpeta nueva y ejecuta el script de tu versión. Abre Panoramización/Recorte de evento del fondo y de Bart: cada evento animado debe tener una clave inicial y otra al final del movimiento. El render estático de Bart debe ser PNG aunque se mueva. Arrastra las claves y edita su centro X/Y o ángulo para comprobar que el movimiento es nativo y modificable. Si el fondo completa sus tres segundos antes del evento, debe mantenerse en su posición final. Si divides un plano con la cámara, el segmento nuevo debe arrancar en el avance correcto. Los GIF y vídeos aún usan MOV por sus imágenes cambiantes; también reciben las claves editables.

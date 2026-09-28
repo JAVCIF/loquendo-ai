@@ -1,0 +1,30 @@
+PRUEBA · v0.9.0-alpha hotfix 18
+
+0. `dotnet build`. Si falla, pégame el error completo.
+
+A. Prompt maestro
+1. Director IA → «Prompt maestro…». Si aparece el aviso de sintaxis antigua, copia tus criterios propios aparte,
+   pulsa «Restablecer base», vuelve a pegar SOLO tus criterios (estilo, humor, reglas de dirección) y guarda.
+   La pestaña «Enviado en modo…» muestra lo que recibe la IA.
+
+B. Director tipado (misma premisa de la pizza con Bart y Fluttershy)
+1. Genera 3 borradores con tu modelo sencillo y 3 con el pesado.
+2. Revisa en la tabla: música y SFX deben salir «Listo» (ya no con el ID raro sin resolver) y NUNCA una canción
+   larga como SFX. Si tus audios están «Sin tipo», clasifica las carpetas (Música / Efectos de sonido) en la
+   Biblioteca para que la IA tenga más opciones; los dudosos por duración no se le ofrecen.
+3. La columna Personaje/recurso debe decir «Bart · nombre_render». Comprueba que en borradores distintos
+   aparecen renders distintos, y que al cambiar la emoción cambia el render.
+4. Si Ollama da un error sobre el formato o el esquema: define LOQUENDO_AI_DIRECTOR_LEGACY=1, reinicia la app,
+   comprueba que vuelve a funcionar y mándame el ia-diagnostico.log y tu versión de Ollama (`ollama -v`).
+5. Modo voces grabadas: genera sobre una escena con WAV incorporados; todos los bloques originales deben aparecer una vez.
+
+C. Selector de recursos
+1. En el borrador, selecciona una fila de SFX y pulsa «Elegir recurso de fila…».
+   Debe abrirse la biblioteca, no el explorador. Busca una palabra (nombre, carpeta o descripción IA).
+2. Pulsa ▶ Escuchar y mira la duración en la parte de abajo. Desmarca «Solo catalogados como…» y comprueba
+   que aparece audio sin tipo; si eliges una canción larga para un SFX, debe avisarte.
+3. En una fila de render: filtro «Solo de Bart», miniatura, doble clic para elegir, luego «Validar edición».
+
+D. Regresión rápida de hotfix 17
+1. Un recurso usado en un guion dentro de una carpeta con «Ignorar»: la preview de la escena debe funcionar.
+2. ia-diagnostico.log: cada generación añade «salida tipada» en la línea del director.

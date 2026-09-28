@@ -1,0 +1,59 @@
+PRUEBA · v1.0.0-beta.6 (sin cambios en la base de datos respecto a beta.4/beta.5)
+
+A. Pruebas automáticas
+1. dotnet build .\LoquendoAI.sln y scripts\pruebas.cmd → «54 correctas». Solo las de cine: scripts\pruebas.cmd CinemaTests
+
+B. Tu Cortador de galletas (2 minutos, antes de lo demás)
+2. En VEGAS, un proyecto con cualquier evento de vídeo → Herramientas > Scripts > Ejecutar script →
+   scripts\vegas\Diagnostico_cortador_galletas_14_o_superior.cs (o _12_13). Deja «cortador_galletas.txt» junto al script.
+   Debe listar el efecto, el preset «Cuadrado, centro, bordes blancos» y parámetros de forma, método, color, borde y tamaño.
+   Si algo sale raro en los pasos de VEGAS de abajo, pásame ese .txt.
+
+C. Barras con cámara (Guion → Director (prompt)). Como la cámara, [CINE] no consume tiempo: actúa sobre lo que viene
+   después (por eso va seguido de una pausa o un diálogo). Cambia Bart y Lisa por dos personajes TUYOS y usa un fondo tuyo.
+
+[FONDO] <un fondo tuyo>
+[MOSTRAR] Bart | izquierda
+[MOSTRAR] Lisa | derecha
+Bart: Lisa, tengo que contarte algo.
+[CINE] mostrar | estilo=cerrado | duracion=1000
+[PAUSA] 1200
+Bart: Me comí tu postre.
+[CAMARA] Lisa | zoom=1.6 | duracion=0 | enfoque=cara
+Lisa: ¿QUÉ?
+[CAMARA] general | duracion=400
+[CINE] mostrar | estilo=abierto
+[PAUSA] 800
+Bart: Técnicamente también era mío.
+[CINE] quitar | duracion=600
+[PAUSA] 800
+Lisa: Esto no se queda así.
+
+3. Validar: sin filas rojas; el estado de las líneas de cine dice «cine: …».
+4. Preview ▶: tras la primera frase de Bart las barras anchas entran en 1 s; con el acercamiento a Lisa las barras NO se
+   agrandan (se quedan fijas en pantalla); después cambian de golpe a barras finas y al final salen suaves.
+5. Exporta a VEGAS (Normal y otra vez Legacy). Cada evento visual (fondo, Bart, Lisa) lleva «Cortador de galletas»
+   mientras hay barras: rectángulo, «cortar todo excepto la sección», color negro, Borde 1,0 (0,560 en el tramo fino).
+   En el tramo de entrada el Tamaño tiene keyframes 1,0 → 0,748; en el de salida 0,639 → 0,747. Los eventos se cortan
+   donde las barras entran, terminan de moverse o salen. Compara un fotograma con la preview: misma altura de barras.
+   (La altura de las barras finas es la que menos he podido comprobar: dime si en VEGAS salen más altas o más bajas.)
+
+D. Solo algunas capas
+6. Añade «| capas=Bart» a las DOS líneas [CINE] mostrar (una línea sin capas vuelve a «todos»).
+   Lisa se dibuja después de Bart (está delante), así que HEREDA el efecto: en VEGAS lo llevan Bart y Lisa, no el fondo,
+   y las barras se ven completas encima de todo.
+7. Invierte el orden de los [MOSTRAR] (primero Lisa, luego Bart): ahora Lisa queda detrás y NO lleva el efecto
+   (las barras de Bart ya la tapan). Mismo aspecto en la preview y en VEGAS.
+8. Pon «[OCULTAR] Bart» justo después de «Lisa: ¿QUÉ?»: con capas=Bart las barras se van con él
+   (sin nadie elegido en pantalla no hay barras). Si quieres que sigan, usa capas=todos o capas=personajes.
+9. «[CINE] mostrar | capas=Homero» (sin ese personaje registrado) → error en la fila.
+
+E. Un episodio entero en cine
+10. Quita el «[CINE] quitar» de la escena y crea una segunda escena sin ninguna línea [CINE] (fondo, un personaje y un diálogo).
+    Su preview empieza con las barras ya puestas (sin animación), y la exportación del episodio a VEGAS pone el
+    Cortador en todos sus eventos. Añade «[CINE] quitar | duracion=600» en la segunda escena: salen ahí.
+
+F. Director IA
+11. Genera un borrador con una premisa dramática o de película («flashback de cuando Bart perdió su patineta», «duelo
+    del oeste entre Bart y Lisa»). La IA puede usar «cine» (mostrar al empezar el momento, quitar al terminar).
+    Con una premisa normal no debería usarlas. Prueba Claude y, si puedes, Gemini y Ollama.

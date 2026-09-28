@@ -1,0 +1,9 @@
+PRUEBA · v0.9.0-alpha hotfix 21 — voces grabadas (haz copia de project.db antes)
+
+1. Importa 3 WAV, asígnales un personaje que TENGA voz en Voice Lab, transcribe e incorpora.
+2. «Generar voces de escena» y ▶ preview: deben sonar tus grabaciones, no el TTS.
+3. En el editor de guion, cambia una palabra del texto de una toma y guarda: debe preguntar si regenerar con TTS.
+   Responde No → sigue sonando la grabación.
+4. En el editor, cambia el personaje de una toma a «Narrador» (y luego de vuelta) y guarda: la grabación sigue sonando.
+5. Selecciona una toma → «Regenerar bloque con TTS» → confirma: suena el TTS. Luego «Restaurar grabación»: vuelve tu WAV.
+6. Director IA en modo historia con «Sustituir bloques actuales» sobre esa escena: debe avisar de las voces grabadas antes de aplicar.

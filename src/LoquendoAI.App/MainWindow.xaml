@@ -1,0 +1,1338 @@
+<Window x:Class="LoquendoAI.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Loquendo AI" Height="900" Width="1360"
+        MinHeight="640" MinWidth="1100"
+        Background="{DynamicResource Theme.WindowBackground}" Foreground="{DynamicResource Theme.Text}"
+        WindowStartupLocation="CenterScreen" Loaded="MainWindow_Loaded" Closing="MainWindow_Closing" Icon="Assets/loquendo-ai.ico">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Cabecera roja: marca, proyecto y tema. -->
+        <Border Background="{DynamicResource Theme.HeaderBar}" Padding="16,9">
+            <DockPanel LastChildFill="False">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="36" Height="36" CornerRadius="18" Background="{DynamicResource Theme.HeaderBarText}">
+                        <TextBlock Text="L" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource Theme.HeaderBar}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Loquendo AI" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource Theme.HeaderBarText}"/>
+                        <TextBlock Text="v1.4.2" FontSize="11" Foreground="{DynamicResource Theme.HeaderBarMuted}"/>
+                    </StackPanel>
+                </StackPanel>
+                <ComboBox x:Name="ThemeCombo" DockPanel.Dock="Right" Width="120" Height="30" Margin="14,0,0,0" VerticalAlignment="Center"
+                          SelectionChanged="ThemeCombo_SelectionChanged" ToolTip="Tema de la interfaz: el de Windows, claro u oscuro">
+                    <ComboBoxItem Content="◐ Sistema" Tag="sistema"/>
+                    <ComboBoxItem Content="☀ Claro" Tag="claro"/>
+                    <ComboBoxItem Content="☾ Oscuro" Tag="oscuro"/>
+                </ComboBox>
+                <StackPanel x:Name="ProjectActionsPanel" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBox x:Name="ProjectNameBox" Width="170" Height="30" Margin="0,0,6,0" VerticalContentAlignment="Center" Text="Mi serie Loquendo"/>
+                    <Button Margin="0,0,6,0" Padding="14,5" Content="Crear proyecto" Style="{StaticResource HeaderButton}" Click="CreateProject_Click"/>
+                    <Button Margin="0,0,6,0" Padding="14,5" Content="Abrir proyecto" Style="{StaticResource HeaderButton}" Click="OpenProject_Click"/>
+                    <Button Margin="6,0,6,0" Padding="10,5" Content="Copia de seguridad" Style="{StaticResource HeaderButton}" Click="BackupProject_Click"
+                            ToolTip="Copia project.db en la carpeta backups del proyecto. Además se hace una copia automática al día al abrir el proyecto y otra antes de actualizar la base de datos (se guardan las 10 últimas de cada tipo)."/>
+                    <Button Padding="10,5" Content="Limpiar caché…" Style="{StaticResource HeaderButton}" Click="CleanProjectCache_Click"
+                            ToolTip="Muestra y borra previews antiguas, voces TTS que ya no usa ningún bloque, caché de voces sin uso de más de 30 días y temporales. Todo es regenerable; nunca toca recursos, voces grabadas, exportaciones ni copias."/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Estado del proyecto. -->
+        <Border Grid.Row="1" Background="{DynamicResource Theme.SurfaceAlt}" BorderBrush="{DynamicResource Theme.Border}" BorderThickness="0,0,0,1" Padding="16,6">
+            <DockPanel>
+                <TextBlock x:Name="StatusText" DockPanel.Dock="Left" FontWeight="SemiBold" Text="Todavía no hay un proyecto abierto."/>
+                <TextBlock x:Name="ProjectPathText" DockPanel.Dock="Right" Margin="16,0,0,0" HorizontalAlignment="Right"
+                           Foreground="{DynamicResource Theme.TextMuted}" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Border>
+
+        <TabControl Grid.Row="2" Background="{DynamicResource Theme.WindowBackground}">
+            <TabItem>
+                <TabItem.Header><StackPanel Orientation="Horizontal"><TextBlock Text="⌂" Margin="0,0,6,0"/><TextBlock Text="Inicio"/></StackPanel></TabItem.Header>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="28,24" MaxWidth="980" HorizontalAlignment="Left">
+                        <TextBlock FontSize="26" FontWeight="SemiBold" Text="Bienvenido a Loquendo AI"/>
+                        <TextBlock Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{DynamicResource Theme.TextMuted}"
+                                   Text="Videos estilo Loquendo: voces, renders, fondos, cámara, gestos y barras de cine, con un Director IA y salida a VEGAS editable."/>
+                        <UniformGrid Columns="3" Margin="0,22,0,0">
+                            <Border Style="{StaticResource Card}" Margin="0,0,12,12">
+                                <StackPanel>
+                                    <TextBlock Text="1 · Proyecto" Style="{StaticResource SectionTitle}" Foreground="{DynamicResource Theme.Accent}"/>
+                                    <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Theme.TextMuted}" Text="Crea o abre un proyecto arriba. Todo se guarda en su carpeta, con copias de seguridad automáticas."/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}" Margin="0,0,12,12">
+                                <StackPanel>
+                                    <TextBlock Text="2 · Biblioteca" Style="{StaticResource SectionTitle}" Foreground="{DynamicResource Theme.Accent}"/>
+                                    <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Theme.TextMuted}" Text="Agrega fuentes de renders, fondos, vídeos, sonidos y música. Los archivos originales no se mueven."/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}" Margin="0,0,12,12">
+                                <StackPanel>
+                                    <TextBlock Text="3 · Voice Lab" Style="{StaticResource SectionTitle}" Foreground="{DynamicResource Theme.Accent}"/>
+                                    <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Theme.TextMuted}" Text="Registra los personajes y su voz (Loquendo, SAPI o TTS7) o usa voces grabadas."/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}" Margin="0,0,12,12">
+                                <StackPanel>
+                                    <TextBlock Text="4 · Guion" Style="{StaticResource SectionTitle}" Foreground="{DynamicResource Theme.Accent}"/>
+                                    <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Theme.TextMuted}" Text="Episodios, escenas y bloques. El panel de abajo (Editor, Preview, Director) se agranda con el divisor o con «Ampliar»."/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}" Margin="0,0,12,12">
+                                <StackPanel>
+                                    <TextBlock Text="5 · Director" Style="{StaticResource SectionTitle}" Foreground="{DynamicResource Theme.Accent}"/>
+                                    <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Theme.TextMuted}" Text="Escribe la escena con [FONDO], [MOSTRAR], [CAMARA], [CINE], [GESTO], [DESENFOQUE]… o deja que la IA la dirija."/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}" Margin="0,0,12,12">
+                                <StackPanel>
+                                    <TextBlock Text="6 · VEGAS" Style="{StaticResource SectionTitle}" Foreground="{DynamicResource Theme.Accent}"/>
+                                    <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Theme.TextMuted}" Text="Mira la preview y exporta la escena o el episodio: pistas, keyframes y efectos editables en VEGAS."/>
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+                        <Border Style="{StaticResource Card}" Margin="0,4,12,0" Background="{DynamicResource Theme.SurfaceAlt}">
+                            <StackPanel>
+                                <TextBlock FontWeight="SemiBold" Text="Regla de la biblioteca"/>
+                                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{DynamicResource Theme.TextMuted}"
+                                           Text="La estructura de carpetas aporta metadata, pero no la impone. Una carpeta puede representar un personaje, un canal, un pack o simplemente una colección. Las expresiones son opcionales."/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem x:Name="LibraryTab" IsEnabled="False">
+                <TabItem.Header><StackPanel Orientation="Horizontal"><TextBlock Text="▦" Margin="0,0,6,0"/><TextBlock Text="Biblioteca"/></StackPanel></TabItem.Header>
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition x:Name="LibrarySourcesRow" Height="1*" MinHeight="80"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition x:Name="LibraryAssetsRow" Height="3*" MinHeight="160"/>
+                    </Grid.RowDefinitions>
+
+                <DockPanel Margin="0,0,0,8">
+                    <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" FontSize="18" FontWeight="SemiBold" Text="Fuentes"/>
+                    <StackPanel x:Name="LibraryActionsPanel" DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Margin="5,0" Padding="12,5" Content="Agregar fuente…" Style="{StaticResource AccentButton}" Click="AddSource_Click"/>
+                        <Button Margin="5,0" Padding="12,5" Content="Editar reglas…" Click="EditSource_Click"/>
+                        <Button Margin="5,0" Padding="12,5" Content="Reubicar…" Click="RelinkSource_Click"/>
+                        <Button Margin="5,0" Padding="12,5" Content="Reescanear" Click="RescanSource_Click"/>
+                        <Button Margin="5,0" Padding="12,5" Content="Reescanear todas" Click="RescanAll_Click"/>
+                        <Button Margin="5,0,0,0" Padding="12,5" Content="Quitar fuente" Click="RemoveSource_Click"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <DataGrid Grid.Row="1" x:Name="SourcesGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+                          IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow"
+                          GridLinesVisibility="Horizontal" RowHeaderWidth="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding Name}" Width="180"/>
+                        <DataGridTextColumn Header="Ruta" Binding="{Binding RootPath}" Width="*"/>
+                        <DataGridTextColumn Header="Estado" Binding="{Binding State}" Width="80"/>
+                        <DataGridTextColumn Header="Assets" Binding="{Binding AssetCount}" Width="80"/>
+                        <DataGridTextColumn Header="Sin fondo" Binding="{Binding NeedsCutoutCount}" Width="90"/>
+                        <DataGridTextColumn Header="Faltantes" Binding="{Binding MissingCount}" Width="80"/>
+                        <DataGridTextColumn Header="Último escaneo" Binding="{Binding LastScanText}" Width="150"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                    <GridSplitter Grid.Row="2" Height="6" Margin="0,6" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                                  ToolTip="Arrastra para repartir el espacio entre fuentes y assets"/>
+
+                    <Grid Grid.Row="3">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                    <StackPanel Margin="0,4,0,8">
+                        <DockPanel Margin="0,0,0,5">
+                            <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" FontSize="18" FontWeight="SemiBold" Text="Assets catalogados"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <TextBlock VerticalAlignment="Center" Margin="0,0,7,0" Foreground="{DynamicResource Theme.TextMuted}" Text="Texto:"/>
+                                <TextBox x:Name="AssetSearchBox" Width="200" Height="28" TextChanged="AssetSearchBox_TextChanged" KeyDown="AssetSearchBox_KeyDown" ToolTip="Nombre, sujeto, ruta, colección o descripción. Pulsa Buscar o Enter."/>
+                                <ComboBox x:Name="AssetKindFilterBox" Width="115" Height="28" Margin="6,0,0,0" DisplayMemberPath="Name" SelectionChanged="AssetFilterSelection_Changed"/>
+                                <ComboBox x:Name="AssetSourceFilterBox" Width="155" Height="28" Margin="6,0,0,0" DisplayMemberPath="Name" SelectionChanged="AssetSourceFilter_SelectionChanged"/>
+                                <ComboBox x:Name="AssetFolderFilterBox" Width="220" Height="28" Margin="6,0,0,0" DisplayMemberPath="Name" SelectionChanged="AssetFilterSelection_Changed" ToolTip="Carpetas y subcarpetas de la fuente seleccionada"
+                                          ScrollViewer.CanContentScroll="True" VirtualizingStackPanel.IsVirtualizing="True">
+                                    <ComboBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></ComboBox.ItemsPanel>
+                                </ComboBox>
+                                <Button Margin="6,0,0,0" Padding="12,4" Content="Buscar" Style="{StaticResource AccentButton}" Click="AssetSearch_Click"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <WrapPanel>
+                            <Button Margin="0,0,12,4" Padding="9,4" Content="Editar etiquetas de la selección…" Click="EditDirectorAssetTags_Click"/>
+                            <Button Margin="0,0,12,4" Padding="9,4" Content="Editar tipo / sujeto…" Click="EditAssetClassification_Click" ToolTip="Actualiza los seleccionados o todos los resultados filtrados"/>
+                            <TextBlock x:Name="AssetFilterStatusText" VerticalAlignment="Center" Margin="0,0,12,4" Foreground="{DynamicResource Theme.TextMuted}"/>
+                            <TextBlock x:Name="AssetVisionProviderLabel" VerticalAlignment="Center" Margin="0,0,6,4" Text="Visión:"/>
+                            <ComboBox x:Name="AssetVisionModelBox" Width="240" Height="29" Margin="0,0,6,4" VerticalContentAlignment="Center" SelectionChanged="AiModelSelectionChanged"/>
+                            <Button Margin="0,0,7,4" Padding="9,4" Content="Configurar IA…" Click="ConfigureAi_Click"/>
+                            <Button Margin="0,0,7,4" Padding="9,4" Content="Recargar modelos" Click="RefreshOllamaModels_Click" ToolTip="Vuelve a leer los modelos instalados en Ollama"/>
+                            <Button Margin="0,0,7,4" Padding="9,4" Content="IA: analizar imágenes seleccionadas" Click="AnalyzeDirectorAssets_Click"
+                                    ToolTip="Imágenes y GIF (primer fotograma) con el modelo de visión. Varias seleccionadas = esas; sin selección (o con una) y con un filtro, pregunta si analizar todo el filtro. Conserva las etiquetas por hash y modelo."/>
+                            <Button Margin="0,0,7,4" Padding="9,4" Content="IA: analizar medios seleccionados" Click="AnalyzeDirectorMedia_Click"
+                                    ToolTip="Todo tipo de recurso: imágenes con el modelo de visión; música, SFX, videos y GIF por su nombre con el modelo del Director (varios por petición, pocos tokens). Los audios cuyo nombre no dice nada se pueden escuchar después con Gemini (pregunta antes)."/>
+                            <Button x:Name="AssetCancelAnalysisButton" Margin="0,0,7,4" Padding="8,4" Content="Cancelar análisis" IsEnabled="False" Click="AiCancel_Click"/>
+                            <TextBlock VerticalAlignment="Center" Margin="0,0,0,4" Foreground="{DynamicResource Theme.TextMuted}" Text="Edita Descripción IA en la celda; doble clic para etiquetas completas."/>
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="1" x:Name="AssetsGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+                              IsReadOnly="False" CellEditEnding="AssetsGrid_CellEditEnding" MouseDoubleClick="AssetsGrid_MouseDoubleClick"
+                              SelectionMode="Extended" SelectionUnit="FullRow"
+                              EnableRowVirtualization="True" EnableColumnVirtualization="True"
+                              GridLinesVisibility="Horizontal" RowHeaderWidth="0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Name}" Width="180" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Descripción IA (editable)" Binding="{Binding Description, UpdateSourceTrigger=LostFocus}" Width="220"/>
+                            <DataGridTextColumn Header="Tipo" Binding="{Binding Kind}" Width="130" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Personaje / sujeto" Binding="{Binding Subject}" Width="150" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Colección" Binding="{Binding Collection}" Width="150" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Fondo" Binding="{Binding Cutout}" Width="120" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Fuente" Binding="{Binding SourceName}" Width="130" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Ruta relativa" Binding="{Binding RelativePath}" Width="*" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Estado" Binding="{Binding State}" Width="90" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem x:Name="VoiceLabTab" IsEnabled="False">
+                <TabItem.Header><StackPanel Orientation="Horizontal"><TextBlock Text="♪" Margin="0,0,6,0"/><TextBlock Text="Voice Lab"/></StackPanel></TabItem.Header>
+                <Grid Margin="14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Margin="0,0,0,12">
+                        <StackPanel DockPanel.Dock="Left">
+                            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Personajes y perfiles de voz"/>
+                            <TextBlock Margin="0,4,0,0" Foreground="{DynamicResource Theme.TextMuted}" Text="La identidad base vive en el personaje; velocidad, pitch y volumen podrán sobreescribirse por diálogo más adelante."/>
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="VoiceBridgeStatusText" VerticalAlignment="Center" Foreground="{DynamicResource Theme.TextMuted}"/>
+                            <Button Margin="12,0,0,0" Padding="11,4" Content="Voces en los selectores…" Click="EditVoiceSelector_Click"
+                                    ToolTip="Qué voces TTS aparecen en «Voz» del Editor, en Diálogos y en Voces grabadas (TTS7, SAPI4 Juan/Antonio, SAPI5 Juan/IVONA…). Añade o quita voces, por ejemplo al instalar voces nuevas."/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="330"/>
+                            <ColumnDefinition Width="18"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <GroupBox Header="Personajes">
+                            <Grid Margin="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <DataGrid x:Name="CharactersGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                          SelectionMode="Single" SelectionUnit="FullRow" RowHeaderWidth="0"
+                                          SelectionChanged="CharactersGrid_SelectionChanged">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Personaje" Binding="{Binding Name}" Width="*"/>
+                                        <DataGridTextColumn Header="Voz base" Binding="{Binding VoiceProfileName}" Width="145"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,0">
+                                    <TextBox x:Name="NewCharacterNameBox" Height="30" MinWidth="180" VerticalContentAlignment="Center"/>
+                                    <Button Margin="8,0,0,0" Padding="12,4" Content="Agregar" Click="AddCharacter_Click"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Padding="11,4" Content="Asignar perfil seleccionado" Click="AssignVoiceProfile_Click"/>
+                                    <Button Margin="8,0,0,0" Padding="11,4" Content="Eliminar" Click="DeleteCharacter_Click"/>
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Grid.Column="2" Header="Perfil de voz">
+                            <Grid Margin="12">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="145"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock VerticalAlignment="Center" Text="Perfil guardado:"/>
+                                <DockPanel Grid.Column="1">
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <Button Margin="8,0,0,0" Padding="10,4" Content="Nuevo" Click="NewVoiceProfile_Click"/>
+                                        <Button Margin="8,0,0,0" Padding="10,4" Content="Eliminar" Click="DeleteVoiceProfile_Click"/>
+                                    </StackPanel>
+                                    <ComboBox x:Name="VoiceProfileCombo" Height="30" DisplayMemberPath="Name"
+                                              SelectionChanged="VoiceProfileCombo_SelectionChanged"/>
+                                </DockPanel>
+
+                                <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="Nombre del perfil:" Margin="0,8,0,0"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="VoiceProfileNameBox" Height="30" Margin="0,8,0,0" VerticalContentAlignment="Center"/>
+
+                                <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Motor:" Margin="0,8,0,0"/>
+                                <ComboBox Grid.Row="2" Grid.Column="1" x:Name="VoiceProviderCombo" Height="30" Margin="0,8,0,0"
+                                          DisplayMemberPath="Name" SelectionChanged="VoiceProviderCombo_SelectionChanged"/>
+
+                                <TextBlock Grid.Row="3" VerticalAlignment="Center" Text="Voz:" Margin="0,8,0,0"/>
+                                <ComboBox Grid.Row="3" Grid.Column="1" x:Name="VoiceIdCombo" Height="30" Margin="0,8,0,0" IsTextSearchEnabled="True"/>
+
+                                <TextBlock Grid.Row="4" VerticalAlignment="Center" Text="Pitch base:" Margin="0,12,0,0"/>
+                                <Grid Grid.Row="4" Grid.Column="1" Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="54"/></Grid.ColumnDefinitions>
+                                    <Slider x:Name="VoicePitchSlider" Minimum="0" Maximum="100" Value="50" TickFrequency="1" IsSnapToTickEnabled="True"
+                                            ValueChanged="VoicePitchSlider_ValueChanged"/>
+                                    <TextBlock Grid.Column="1" x:Name="VoicePitchValueText" VerticalAlignment="Center" HorizontalAlignment="Right" Text="50"/>
+                                </Grid>
+
+                                <TextBlock Grid.Row="5" VerticalAlignment="Center" Text="Velocidad base:" Margin="0,12,0,0"/>
+                                <Grid Grid.Row="5" Grid.Column="1" Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/><ColumnDefinition Width="54"/>
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox x:Name="VoiceSpeedEnabledCheck" VerticalAlignment="Center" Content="Fijar"
+                                              Checked="VoiceSpeedEnabled_Changed" Unchecked="VoiceSpeedEnabled_Changed"/>
+                                    <Slider Grid.Column="2" x:Name="VoiceSpeedSlider" Minimum="0" Maximum="100" Value="50" TickFrequency="1"
+                                            IsSnapToTickEnabled="True" IsEnabled="False" ValueChanged="VoiceSpeedSlider_ValueChanged"/>
+                                    <TextBlock Grid.Column="3" x:Name="VoiceSpeedValueText" VerticalAlignment="Center" HorizontalAlignment="Right" Text="Auto"/>
+                                </Grid>
+
+                                <TextBlock Grid.Row="6" VerticalAlignment="Center" Text="Volumen:" Margin="0,12,0,0"/>
+                                <Grid Grid.Row="6" Grid.Column="1" Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="54"/></Grid.ColumnDefinitions>
+                                    <Slider x:Name="VoiceVolumeSlider" Minimum="0" Maximum="100" Value="100" TickFrequency="1" IsSnapToTickEnabled="True"
+                                            ValueChanged="VoiceVolumeSlider_ValueChanged"/>
+                                    <TextBlock Grid.Column="1" x:Name="VoiceVolumeValueText" VerticalAlignment="Center" HorizontalAlignment="Right" Text="100"/>
+                                </Grid>
+
+                                <TextBlock Grid.Row="7" VerticalAlignment="Center" Text="Sample rate (TTS7):" Margin="0,10,0,0"/>
+                                <ComboBox Grid.Row="7" Grid.Column="1" x:Name="VoiceSampleRateCombo" Height="30" Width="130" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+
+                                <Grid Grid.Row="8" Grid.ColumnSpan="2" Margin="0,14,0,0">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                    <TextBlock FontWeight="SemiBold" Text="Texto de prueba"/>
+                                    <TextBox Grid.Row="1" x:Name="VoicePreviewTextBox" Margin="0,6,0,0" AcceptsReturn="True" TextWrapping="Wrap"
+                                             VerticalScrollBarVisibility="Auto" MinHeight="100"
+                                             Text="Hola amigos de YouTube, esto es una prueba del Voice Lab de Loquendo AI."/>
+                                </Grid>
+
+                                <DockPanel Grid.Row="9" Grid.ColumnSpan="2" Margin="0,14,0,0">
+                                    <TextBlock x:Name="VoiceLabStatusText" DockPanel.Dock="Left" VerticalAlignment="Center" Foreground="{DynamicResource Theme.TextMuted}" Text="Selecciona un motor y una voz."/>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <Button x:Name="VoicePreviewButton" Padding="12,5" Content="▶ Escuchar" Click="PreviewVoice_Click"/>
+                                        <Button Margin="8,0,0,0" Padding="12,5" Content="■ Detener" Click="StopVoicePreview_Click"/>
+                                        <Button Margin="8,0,0,0" Padding="12,5" Content="Guardar perfil" Style="{StaticResource AccentButton}" Click="SaveVoiceProfile_Click"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Grid>
+                        </GroupBox>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem x:Name="DialogueTab" IsEnabled="False">
+                <TabItem.Header><StackPanel Orientation="Horizontal"><TextBlock Text="❝" Margin="0,0,6,0"/><TextBlock Text="Diálogos"/></StackPanel></TabItem.Header>
+                <!-- Módulo de diálogos (1.2.0): escribe, importa o genera con IA las líneas de un episodio, genera sus
+                     voces con TTS y las exporta a escenas como voces grabadas. -->
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*" MinHeight="140"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Style="{StaticResource Card}" Padding="10,8">
+                        <WrapPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                <TextBlock Text="Guion de diálogos:" VerticalAlignment="Center" Margin="0,0,6,0" FontWeight="SemiBold"/>
+                                <ComboBox x:Name="DialogueSetCombo" Width="210" Height="28" VerticalContentAlignment="Center" DisplayMemberPath="Name"
+                                          SelectionChanged="DialogueSetCombo_SelectionChanged" ToolTip="Cada guion se guarda solo en la carpeta «dialogos» del proyecto"/>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="Nuevo" Click="NewDialogueSet_Click"/>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="Renombrar" Click="RenameDialogueSet_Click"/>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="Eliminar" Click="DeleteDialogueSet_Click"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                <TextBlock Text="Leer como:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <ComboBox x:Name="DialogueParseModeCombo" Width="150" Height="28" VerticalContentAlignment="Center" SelectedIndex="0"
+                                          ToolTip="Recomendado: «Nombre: texto», una línea sin nombre es narración y «[ESCENA] título» corta. Análisis: además entiende guiones de cine, diálogos de novela («—Hola —dijo Bart»), chats, tiempos, numeración y encabezados.">
+                                    <ComboBoxItem Content="Formato recomendado"/>
+                                    <ComboBoxItem Content="Modo análisis"/>
+                                </ComboBox>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="Importar archivo…" Click="ImportDialogueFile_Click"
+                                        ToolTip="Texto (.txt, .md), Word (.docx), Excel (.xlsx) o CSV. Los .doc y .xls antiguos: guárdalos antes como .docx / .xlsx."/>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="Pegar / escribir texto…" Click="PasteDialogueText_Click"
+                                        ToolTip="Pega aquí lo que te dio una IA web o escribe el guion en el formato recomendado"/>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="Formato recomendado…" Click="ShowDialogueFormat_Click"/>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="Exportar .txt" Click="ExportDialogueText_Click"
+                                        ToolTip="Guarda el guion en el formato recomendado (se puede volver a importar)"/>
+                            </StackPanel>
+                        </WrapPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" Margin="0,8,0,0" Style="{StaticResource Card}" Padding="10,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBox x:Name="DialogueStoryBox" Height="52" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                     TextChanged="DialogueStoryBox_TextChanged"
+                                     ToolTip="Historia para la IA: de qué trata, el tono y cómo termina. Se usa en «Prompt maestro…» y en «Generar diálogos con IA»."/>
+                            <WrapPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" MaxWidth="560">
+                                <Button Margin="0,2,6,2" Padding="9,3" Content="Prompt maestro…" Click="DialogueMasterPrompt_Click"
+                                        ToolTip="Elige qué personajes participan y copia el prompt para una IA web (ChatGPT, Gemini, Claude…); su respuesta se pega con «Pegar / escribir texto…»"/>
+                                <TextBlock Text="Modelo:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <ComboBox x:Name="DialogueModelBox" Width="210" Height="28" VerticalContentAlignment="Center" Margin="0,2,6,2"
+                                          ToolTip="Los mismos modelos del Director IA («Configurar IA» en la pestaña Director IA)"/>
+                                <TextBlock Text="Líneas:" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBox x:Name="DialogueAiLinesBox" Width="44" Height="26" Text="30" VerticalContentAlignment="Center" Margin="0,2,6,2"
+                                         ToolTip="Líneas aproximadas que pedir (hasta 150 por generación; genera otra vez para añadir más)"/>
+                                <Button x:Name="DialogueAiButton" Margin="0,2,6,2" Padding="10,3" Content="Generar diálogos con IA" Style="{StaticResource AccentButton}"
+                                        Click="GenerateDialogueAi_Click" ToolTip="Solo escribe los diálogos (no monta escenas) con el prompt maestro y los personajes elegidos"/>
+                                <Button x:Name="DialogueCancelButton" Margin="0,2,0,2" Padding="10,3" Content="Cancelar" IsEnabled="False" Click="CancelDialogueWork_Click"/>
+                            </WrapPanel>
+                        </Grid>
+                    </Border>
+
+                    <DataGrid x:Name="DialogueGrid" Grid.Row="2" Margin="0,8,0,0" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                              CanUserSortColumns="False" SelectionMode="Extended" RowHeaderWidth="0" CellEditEnding="DialogueGrid_CellEditEnding"
+                              KeyDown="DialogueGrid_KeyDown">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="" Width="36" CanUserSort="False">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="▶" Width="26" Height="22" Padding="0" Click="PlayDialogueRow_Click" Visibility="{Binding LineVisibility}"
+                                                ToolTip="Escuchar esta línea (la genera si aún no tiene audio)"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="#" Binding="{Binding Order}" Width="40" IsReadOnly="True"/>
+                            <DataGridTemplateColumn Header="Tipo" Width="105" SortMemberPath="KindText">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate><TextBlock Text="{Binding KindText}" VerticalAlignment="Center" Margin="4,0"/></DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding KindChoices}" SelectedItem="{Binding KindText, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Quién habla" Width="140" SortMemberPath="Speaker">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate><TextBlock Text="{Binding Speaker}" VerticalAlignment="Center" Margin="4,0" TextTrimming="CharacterEllipsis"/></DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox IsEditable="True" IsTextSearchEnabled="False" ItemsSource="{Binding SpeakerChoices}" Text="{Binding Speaker, UpdateSourceTrigger=LostFocus}"
+                                                  ToolTip="Un personaje registrado usa su perfil; cualquier otro nombre es un NPC"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Voz asignada" Width="215" SortMemberPath="VoiceText">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <ComboBox Height="24" ItemsSource="{Binding VoiceChoices}" DisplayMemberPath="Name"
+                                                      SelectedItem="{Binding VoiceChoice, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding NpcVisibility}"
+                                                      ToolTip="Voz de este NPC: la del perfil NPC, cualquier voz TTS7 o un perfil guardado"/>
+                                            <DockPanel Visibility="{Binding ProfileVisibility}">
+                                                <Button DockPanel.Dock="Right" Content="✎" Width="24" Height="22" Padding="0" Margin="4,0,0,0" Click="EditDialogueProfile_Click"
+                                                        ToolTip="Editar el perfil de este personaje en Voice Lab"/>
+                                                <TextBlock Text="{Binding VoiceText}" VerticalAlignment="Center" Margin="4,0,0,0" TextTrimming="CharacterEllipsis"
+                                                           ToolTip="{Binding VoiceText}"/>
+                                            </DockPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Pitch" Binding="{Binding PitchText, UpdateSourceTrigger=LostFocus}" Width="50"/>
+                            <DataGridTextColumn Header="Vel." Binding="{Binding SpeedText, UpdateSourceTrigger=LostFocus}" Width="46"/>
+                            <DataGridTextColumn Header="Vol." Binding="{Binding VolumeText, UpdateSourceTrigger=LostFocus}" Width="46"/>
+                            <DataGridTextColumn Header="Diálogo" Binding="{Binding Text, UpdateSourceTrigger=LostFocus}" Width="*" MinWidth="220">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="TextWrapping" Value="Wrap"/>
+                                        <Setter Property="Margin" Value="4,2"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Comentario" Binding="{Binding Comment, UpdateSourceTrigger=LostFocus}" Width="150"/>
+                            <DataGridTextColumn Header="Estado" Binding="{Binding StateText}" Width="150" IsReadOnly="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="ToolTip" Value="{Binding StateDetail}"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="Margin" Value="4,0"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Duración" Binding="{Binding DurationText}" Width="70" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Border Grid.Row="3" Margin="0,8,0,0" Style="{StaticResource Card}" Padding="10,6">
+                        <WrapPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                <Button Padding="9,3" Content="+ Línea" Click="AddDialogueLine_Click" ToolTip="Añade una línea debajo de la seleccionada"/>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="+ Corte de escena" Click="AddDialogueScene_Click"
+                                        ToolTip="Una escena nueva empieza aquí (su título va en «Diálogo»)"/>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="Duplicar" Click="DuplicateDialogueLines_Click"/>
+                                <Button Margin="6,0,0,0" Width="30" Padding="0" Content="↑" Click="MoveDialogueUp_Click" ToolTip="Subir la selección"/>
+                                <Button Margin="6,0,0,0" Width="30" Padding="0" Content="↓" Click="MoveDialogueDown_Click" ToolTip="Bajar la selección"/>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="Eliminar" Click="DeleteDialogueLines_Click"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                <TextBlock Text="Selección →" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource Theme.TextMuted}"/>
+                                <ComboBox x:Name="DialogueBulkSpeakerCombo" Width="140" Height="28" IsEditable="True" VerticalContentAlignment="Center"
+                                          ToolTip="Personaje registrado o nombre de NPC para las filas seleccionadas"/>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="Asignar quién habla" Click="AssignDialogueSpeaker_Click"/>
+                                <ComboBox x:Name="DialogueBulkVoiceCombo" Width="170" Height="28" Margin="10,0,0,0" DisplayMemberPath="Name" VerticalContentAlignment="Center"
+                                          ToolTip="Voz para las filas NPC seleccionadas (las de personajes con perfil usan su perfil)"/>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="Asignar voz NPC" Click="AssignDialogueVoice_Click"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
+                                <TextBlock Text="Pitch" VerticalAlignment="Center"/>
+                                <TextBox x:Name="DialogueBulkPitchBox" Width="40" Height="26" Margin="4,0,8,0" VerticalContentAlignment="Center" ToolTip="Vacío = el del perfil"/>
+                                <TextBlock Text="Vel." VerticalAlignment="Center"/>
+                                <TextBox x:Name="DialogueBulkSpeedBox" Width="40" Height="26" Margin="4,0,8,0" VerticalContentAlignment="Center" ToolTip="Vacío = el del perfil"/>
+                                <TextBlock Text="Vol." VerticalAlignment="Center"/>
+                                <TextBox x:Name="DialogueBulkVolumeBox" Width="40" Height="26" Margin="4,0,8,0" VerticalContentAlignment="Center" ToolTip="Vacío = el del perfil"/>
+                                <Button Padding="9,3" Content="Ajustar selección" Click="ApplyDialogueProsody_Click"
+                                        ToolTip="Solo para estas líneas: el perfil no cambia (su base se edita en Voice Lab)"/>
+                                <TextBox x:Name="DialogueSearchBox" Width="130" Height="26" Margin="14,0,0,0" VerticalContentAlignment="Center" KeyDown="DialogueSearchBox_KeyDown"
+                                         ToolTip="Escribe y pulsa Intro: selecciona la siguiente línea que lo contenga (texto, personaje o comentario)"/>
+                                <Button Margin="6,0,0,0" Padding="9,3" Content="Buscar" Click="FindDialogue_Click"/>
+                            </StackPanel>
+                        </WrapPanel>
+                    </Border>
+
+                    <Border Grid.Row="4" Margin="0,8,0,0" Style="{StaticResource PlayerBar}">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                                <Button x:Name="DialoguePlayAllButton" MinWidth="130" Height="29" Padding="10,3" Content="▶ Reproducir todo" Style="{StaticResource AccentButton}"
+                                        Click="PlayAllDialogue_Click" ToolTip="Desde la línea seleccionada (o la primera) hasta el final, de corrido"/>
+                                <Button Margin="6,0,0,0" MinWidth="82" Height="29" Padding="10,3" Content="■ Detener" Click="StopDialoguePlayback_Click"/>
+                                <Button x:Name="DialogueGenerateButton" Margin="14,0,0,0" MinWidth="120" Height="29" Padding="10,3" Content="Generar audios"
+                                        Click="GenerateDialogueAudio_Click" ToolTip="Genera con TTS las líneas que aún no tienen audio (las demás se reutilizan)"/>
+                                <Button Margin="6,0,0,0" Height="29" Padding="10,3" Content="Regenerar selección" Click="RegenerateDialogueAudio_Click"
+                                        ToolTip="Vuelve a sintetizar las líneas seleccionadas"/>
+                            </StackPanel>
+                            <TextBlock x:Name="DialogueStatsText" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0"
+                                       Foreground="{DynamicResource Theme.TextMuted}" Text="0 líneas"/>
+                            <TextBlock x:Name="DialogueStatusText" VerticalAlignment="Center" Margin="12,0,0,0" TextTrimming="CharacterEllipsis"
+                                       Text="Abre un proyecto. Importa, pega, escribe o genera con IA los diálogos."/>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Grid.Row="5" Margin="0,8,0,0" Style="{StaticResource Card}" Padding="10,8">
+                        <WrapPanel>
+                            <TextBlock Text="Exportar a escenas →" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
+                            <TextBlock Text="Episodio:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <ComboBox x:Name="DialogueEpisodeCombo" Width="220" Height="28" VerticalContentAlignment="Center" DisplayMemberPath="Name"
+                                      DropDownOpened="DialogueEpisodeCombo_DropDownOpened" ToolTip="Las escenas se crean al final de este episodio"/>
+                            <ComboBox x:Name="DialogueExportModeCombo" Width="300" Height="28" Margin="8,0,0,0" VerticalContentAlignment="Center" SelectedIndex="1"
+                                      SelectionChanged="DialogueExportMode_SelectionChanged">
+                                <ComboBoxItem Content="Una escena con todas (Director IA · episodio)"/>
+                                <ComboBoxItem Content="Repartir en escenas (cortes y límite)"/>
+                            </ComboBox>
+                            <TextBlock x:Name="DialoguePerSceneLabel" Text="Líneas por escena:" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                            <TextBox x:Name="DialoguePerSceneBox" Width="40" Height="26" Text="40" VerticalContentAlignment="Center"
+                                     ToolTip="Máximo 40 (el límite del Director IA por escena). Una escena más larga se parte en partes iguales."/>
+                            <Button Margin="10,0,0,0" MinWidth="150" Padding="10,4" Content="Exportar a escenas" Style="{StaticResource AccentButton}"
+                                    Click="ExportDialogueToScenes_Click"
+                                    ToolTip="Crea escenas NUEVAS al final del episodio con las líneas como voces grabadas (WAV + texto + su voz). Después: Director IA en modo «Montar voces grabadas»."/>
+                        </WrapPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem x:Name="ScriptTab" IsEnabled="False">
+                <TabItem.Header><StackPanel Orientation="Horizontal"><TextBlock Text="✎" Margin="0,0,6,0"/><TextBlock Text="Guion"/></StackPanel></TabItem.Header>
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="ScriptNavColumn" Width="250" MinWidth="170" MaxWidth="560"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" MinWidth="480"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Episodios y escenas, apilados (antes eran dos columnas que le quitaban ancho a todo lo demás). -->
+                    <Grid x:Name="ScriptNavPanel">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" MinHeight="140"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*" MinHeight="140"/>
+                        </Grid.RowDefinitions>
+                        <Border Style="{StaticResource Card}">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionTitle}" Text="Episodios"/>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <ListBox x:Name="EpisodesList" DisplayMemberPath="Display" SelectionChanged="EpisodesList_SelectionChanged"/>
+                                <Grid Grid.Row="1" Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="50"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBox x:Name="EpisodeNumberBox" Height="28" VerticalContentAlignment="Center" ToolTip="Número"/>
+                                    <TextBox Grid.Column="1" x:Name="EpisodeTitleBox" Margin="6,0,0,0" Height="28" VerticalContentAlignment="Center" ToolTip="Título"/>
+                                </Grid>
+                                <TextBox Grid.Row="2" x:Name="EpisodeSynopsisBox" Margin="0,6,0,0" Height="52" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" ToolTip="Sinopsis"/>
+                                <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,7,0,0">
+                                    <Button Padding="9,4" Content="Nuevo" Click="NewEpisode_Click"/>
+                                    <Button Margin="6,0,0,0" Padding="9,4" Content="Guardar" Click="SaveEpisode_Click"/>
+                                    <Button Margin="6,0,0,0" Padding="9,4" Content="Eliminar" Click="DeleteEpisode_Click"/>
+                                </StackPanel>
+                            </Grid>
+                            </DockPanel>
+                        </Border>
+                        <GridSplitter Grid.Row="1" Height="6" Margin="0,4" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"/>
+                        <Border Grid.Row="2" Style="{StaticResource Card}">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionTitle}" Text="Escenas"/>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <ListBox x:Name="ScenesList" DisplayMemberPath="Display" SelectionChanged="ScenesList_SelectionChanged"/>
+                                <TextBox Grid.Row="1" x:Name="SceneTitleBox" Margin="0,8,0,0" Height="28" VerticalContentAlignment="Center" ToolTip="Título de la escena"/>
+                                <TextBox Grid.Row="2" x:Name="SceneNotesBox" Margin="0,6,0,0" Height="52" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" ToolTip="Notas de dirección"/>
+                                <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,7,0,0">
+                                    <Button Padding="9,4" Content="Nueva" Click="NewScene_Click"/>
+                                    <Button Margin="6,0,0,0" Padding="9,4" Content="Guardar" Click="SaveScene_Click"/>
+                                    <Button Margin="6,0,0,0" Padding="9,4" Content="Eliminar" Click="DeleteScene_Click"/>
+                                </StackPanel>
+                            </Grid>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+
+                    <GridSplitter x:Name="ScriptNavSplitter" Grid.Column="1" Width="6" Margin="4,0" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                                  ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ToolTip="Arrastra para cambiar el ancho de episodios y escenas"/>
+
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition x:Name="ScriptBlocksRow" Height="1*" MinHeight="110"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition x:Name="ScriptToolsRow" Height="2*" MinHeight="230"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Margin="0,0,0,7">
+                            <StackPanel DockPanel.Dock="Left">
+                                <TextBlock FontSize="19" FontWeight="SemiBold" Text="Bloques de escena"/>
+                                <TextBlock x:Name="ScriptSceneSummaryText" Margin="0,3,0,0" Foreground="{DynamicResource Theme.TextMuted}" Text="Selecciona una escena."/>
+                            </StackPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                <Button x:Name="ToolsFocusButton" Margin="0,0,14,0" Padding="10,4" Content="▲ Ampliar panel" Click="ToggleToolsFocus_Click"
+                                        ToolTip="Deja el panel de abajo (Editor, Preview, Director…) a pantalla completa, ocultando episodios, escenas y la tabla de bloques. Vuelve a pulsar para restaurar."/>
+                                <Button Padding="10,4" Content="+ Diálogo" Click="AddDialogueBlock_Click"/>
+                                <ComboBox x:Name="QuickBlockTypeCombo" Width="120" Height="28" Margin="6,0,0,0" DisplayMemberPath="Name"/>
+                                <Button Margin="4,0,0,0" Padding="9,4" Content="+ Bloque" Click="AddTypedBlock_Click"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <Grid x:Name="ScriptBlocksPane" Grid.Row="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <DataGrid x:Name="ScriptBlocksGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                      SelectionMode="Extended" SelectionUnit="FullRow" RowHeaderWidth="0" GridLinesVisibility="Horizontal"
+                                      SelectionChanged="ScriptBlocksGrid_SelectionChanged" PreviewKeyDown="ScriptBlocksGrid_KeyDown"
+                                      AllowDrop="True" PreviewMouseLeftButtonDown="ScriptBlocksGrid_PreviewMouseLeftButtonDown"
+                                      PreviewMouseLeftButtonUp="ScriptBlocksGrid_PreviewMouseLeftButtonUp" PreviewMouseMove="ScriptBlocksGrid_PreviewMouseMove"
+                                      DragOver="ScriptBlocksGrid_DragOver" DragLeave="ScriptBlocksGrid_DragLeave" Drop="ScriptBlocksGrid_Drop"
+                                      CanUserSortColumns="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="#" Binding="{Binding Order}" Width="42"/>
+                                    <DataGridTextColumn Header="Tiempo" Binding="{Binding Start}" Width="76"/>
+                                    <DataGridTextColumn Header="Tipo" Binding="{Binding Kind}" Width="95"/>
+                                    <DataGridTextColumn Header="Personaje / asset" Binding="{Binding Subject}" Width="145"/>
+                                    <DataGridTextColumn Header="Contenido" Binding="{Binding Content}" Width="*"/>
+                                    <DataGridTextColumn Header="Audio" Binding="{Binding AudioState}" Width="95"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <DockPanel Grid.Row="1" Margin="0,6,0,0">
+                                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                                    <Button Padding="9,3" Content="↑" Click="MoveBlockUp_Click" ToolTip="Subir uno o varios bloques seleccionados (también puedes arrastrarlos en la tabla)"/>
+                                    <Button Margin="5,0,0,0" Padding="9,3" Content="↓" Click="MoveBlockDown_Click" ToolTip="Bajar uno o varios bloques seleccionados"/>
+                                    <Button Margin="5,0,0,0" Padding="9,3" Content="Eliminar" Click="DeleteBlock_Click" ToolTip="Eliminar seleccionados; Ctrl alterna, Shift elige rangos y Tab amplía la selección"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <Button x:Name="PlayGeneratedLineButton" Padding="10,3" Content="▶ Audio" Click="PlayGeneratedLine_Click"/>
+                                    <Button Margin="4,0,0,0" Width="30" Padding="0" Content="■" Click="StopScriptAudio_Click" ToolTip="Detener el audio que suena (voz, música o SFX)"/>
+                                    <Button x:Name="GenerateSceneVoicesButton" Margin="6,0,0,0" Padding="11,3" Content="Generar voces de escena" Style="{StaticResource AccentButton}" Click="GenerateSceneVoices_Click"/>
+                                    <Button Margin="6,0,0,0" Padding="9,3" Content="Regenerar bloque con TTS" Click="RegenerateImportedVoice_Click" ToolTip="Pide confirmación y sustituye la voz grabada del bloque por TTS con la voz asignada a la toma (no la del personaje). La grabación se conserva para restaurarla."/>
+                                    <Button Margin="6,0,0,0" Padding="9,3" Content="Restaurar grabación" Click="RestoreRecordedVoice_Click" ToolTip="Vuelve a la voz grabada original de un bloque que se regeneró con TTS"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Grid>
+
+                        <GridSplitter x:Name="ScriptToolsSplitter" Grid.Row="2" Height="6" Margin="0,6" HorizontalAlignment="Stretch"
+                                      ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" ToolTip="Arrastra para dar más espacio a la tabla o al panel de abajo"/>
+
+                        <Grid Grid.Row="3">
+                            <TabControl x:Name="ScriptToolsTabs" BorderThickness="1" BorderBrush="{DynamicResource Theme.Border}">
+                                <TabItem>
+                                    <TabItem.Header><StackPanel Orientation="Horizontal"><TextBlock Text="✎" Margin="0,0,6,0"/><TextBlock Text="Editor"/></StackPanel></TabItem.Header>
+                        <Grid Margin="9">
+                          <Grid.RowDefinitions>
+                              <RowDefinition Height="*"/>
+                              <RowDefinition Height="Auto"/>
+                          </Grid.RowDefinitions>
+                          <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                           <Grid Margin="0,0,5,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="115"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="105"/>
+                                <ColumnDefinition Width="170"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock VerticalAlignment="Center" Text="Tipo:"/>
+                            <ComboBox Grid.Column="1" x:Name="ScriptBlockTypeCombo" Height="28" DisplayMemberPath="Name" SelectionChanged="ScriptBlockTypeCombo_SelectionChanged"/>
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0" Text="Personaje:"/>
+                            <ComboBox Grid.Column="3" x:Name="ScriptCharacterCombo" Height="28" DisplayMemberPath="Name" SelectionChanged="ScriptCharacterCombo_SelectionChanged"/>
+
+                            <TextBlock Grid.Row="1" x:Name="ScriptAssetLabel" VerticalAlignment="Center" Margin="0,7,0,0" Text="Asset:"/>
+                            <DockPanel Grid.Row="1" Grid.Column="1" Margin="0,7,0,0" LastChildFill="True">
+                                <Button DockPanel.Dock="Right" Content="■" Width="30" Height="28" Padding="0" Margin="4,0,0,0" ToolTip="Detener el audio que suena (voz, música o SFX)" Click="StopScriptAudio_Click"/>
+                                <Button x:Name="PreviewAssetButton" DockPanel.Dock="Right" Content="▶" Width="30" Height="28" Padding="0" Margin="6,0,0,0" ToolTip="Escuchar SFX o música seleccionada" Click="PreviewAsset_Click"/>
+                                <Button x:Name="ScriptAssetsRefreshButton" DockPanel.Dock="Right" Content="↻" Width="30" Height="28" Padding="0" Margin="6,0,0,0"
+                                        ToolTip="Volver a consultar los assets después de un escaneo o cambio de reglas" Click="ScriptAssetsRefresh_Click"/>
+                                <Button x:Name="BrowseCatalogAssetButton" DockPanel.Dock="Right" Content="Elegir archivo…" Height="28" Padding="7,2" Margin="6,0,0,0"
+                                        ToolTip="Seleccionar un archivo catalogado, aunque quede fuera de los primeros 150" Click="BrowseCatalogAsset_Click"/>
+                                <ComboBox x:Name="ScriptAssetCombo" Height="28" DisplayMemberPath="Name" IsTextSearchEnabled="True"
+                                          SelectionChanged="ScriptAssetCombo_SelectionChanged"
+                                          VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True"/>
+                            </DockPanel>
+                            <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Margin="10,7,0,0" Text="Voz:"/>
+                            <ComboBox Grid.Row="1" Grid.Column="3" x:Name="ScriptVoiceProfileCombo" Height="28" Margin="0,7,0,0" DisplayMemberPath="Name"
+                                      ToolTip="Con qué voz habla: la del perfil del personaje, un perfil o cualquier voz TTS de la lista (Voice Lab › Voces en los selectores)."/>
+
+                            <TextBlock Grid.Row="2" VerticalAlignment="Center" Margin="0,7,0,0" Text="Overrides:"/>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,7,0,0">
+                                <TextBlock VerticalAlignment="Center" Text="Pitch"/><TextBox x:Name="BlockPitchBox" Width="48" Height="26" Margin="5,0,12,0" VerticalContentAlignment="Center" ToolTip="vacío = heredar"/>
+                                <TextBlock VerticalAlignment="Center" Text="Vel."/><TextBox x:Name="BlockSpeedBox" Width="48" Height="26" Margin="5,0,12,0" VerticalContentAlignment="Center" ToolTip="vacío = heredar"/>
+                                <TextBlock VerticalAlignment="Center" Text="Vol."/><TextBox x:Name="BlockVolumeBox" Width="48" Height="26" Margin="5,0,12,0" VerticalContentAlignment="Center" ToolTip="vacío = heredar"/>
+                                <TextBlock VerticalAlignment="Center" Text="Pausa ms"/><TextBox x:Name="BlockPauseBox" Width="65" Height="26" Margin="5,0,0,0" VerticalContentAlignment="Center" Text="0"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" Orientation="Vertical" Margin="0,5,0,0" VerticalAlignment="Top">
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox x:Name="SfxWaitCheck" Content="Esperar a que termine el SFX" VerticalAlignment="Center" Checked="SfxWaitCheck_Changed" Unchecked="SfxWaitCheck_Changed"/>
+                                    <TextBlock Margin="18,0,5,0" Text="Posición:" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="CharacterPositionCombo" Width="105" Height="25" SelectedIndex="1" ToolTip="Auto reparte a los personajes entre los espacios de la escena.">
+                                        <ComboBoxItem Content="izquierda"/><ComboBoxItem Content="centro"/><ComboBoxItem Content="derecha"/><ComboBoxItem Content="auto"/>
+                                    </ComboBox>
+                                </StackPanel>
+                                <WrapPanel x:Name="CharacterFramingPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Encuadre:" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="CharacterFramingCombo" Width="166" Height="25" Margin="6,0,12,0" SelectedIndex="1"
+                                              ToolTip="Auto analiza el área visible; cuerpo y medio conservan la silueta. Primer plano recorta su parte superior.">
+                                        <ComboBoxItem Content="Original"/><ComboBoxItem Content="Automático"/><ComboBoxItem Content="Cuerpo entero"/><ComboBoxItem Content="Medio cuerpo"/><ComboBoxItem Content="Primer plano"/>
+                                    </ComboBox>
+                                    <TextBlock Text="Auto distribuye personajes y quita márgenes transparentes. Puedes corregirlo con ancho, alto y posición."
+                                               Width="440" Foreground="{DynamicResource Theme.TextMuted}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                </WrapPanel>
+                                <WrapPanel x:Name="BackgroundBordersPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <CheckBox x:Name="BackgroundTrimBordersCheck" Content="Quitar bordes planos del archivo (automático)" IsChecked="True"
+                                              VerticalAlignment="Center" ToolTip="Detecta pares de márgenes uniformes dentro de la imagen. Desmárcalo si son parte del dibujo."/>
+                                </WrapPanel>
+                                <WrapPanel x:Name="VisualTimingPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Duración (ms):" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="VisualDurationBox" Width="85" Height="25" Margin="6,0,10,0" VerticalContentAlignment="Center"
+                                             ToolTip="Vacío: hasta siguiente fondo/imagen, ocultar personaje o fin de escena. En video: duración original."/>
+                                    <TextBlock x:Name="VisualTimingHint" Text="Vacío = automático; no retrasa la voz" Foreground="{DynamicResource Theme.TextMuted}" VerticalAlignment="Center"/>
+                                </WrapPanel>
+                                <WrapPanel x:Name="TransitionOptionsPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Fundido:" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="TransitionStyleCombo" Width="225" Height="25" Margin="6,0,12,0" SelectedIndex="0"
+                                              SelectionChanged="TransitionStyleCombo_SelectionChanged">
+                                        <ComboBoxItem Content="Entrada (desde negro)"/>
+                                        <ComboBoxItem Content="Salida (hacia negro)"/>
+                                        <ComboBoxItem Content="Cambio a mitad (negro)"/>
+                                        <ComboBoxItem Content="Cruce de capas"/>
+                                    </ComboBox>
+                                    <TextBlock Text="Duración (ms):" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="TransitionDurationBox" Width="75" Height="25" Margin="6,0,0,0" Text="500" VerticalContentAlignment="Center"
+                                             ToolTip="80 a 10.000 ms; desplaza el bloque siguiente."/>
+                                    <TextBlock Text="VEGAS:" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                    <ComboBox x:Name="TransitionVegasEffectCombo" Width="155" Height="25" Margin="6,0,0,0" SelectedIndex="0"
+                                              SelectionChanged="VegasEffectSelection_Changed"
+                                              ToolTip="Solo para Cruce de capas. El MP4 muestra un cruce de opacidad; el efecto exacto se ve en VEGAS.">
+                                        <ComboBoxItem Content="Fundido normal"/>
+                                        <ComboBoxItem Content="Disolvente aditivo"/>
+                                        <ComboBoxItem Content="Flash suave"/>
+                                        <ComboBoxItem Content="Barrido izquierda→derecha"/>
+                                        <ComboBoxItem Content="Plugin del catálogo…"/>
+                                    </ComboBox>
+                                </WrapPanel>
+                                <WrapPanel x:Name="TransitionTargetsPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Aplicar cruce a:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <CheckBox x:Name="TransitionBackgroundCheck" Content="Fondo" IsChecked="True" Margin="0,0,12,0"/>
+                                    <CheckBox x:Name="TransitionCharacterCheck" Content="Personajes" IsChecked="True" Margin="0,0,12,0"/>
+                                    <CheckBox x:Name="TransitionImageCheck" Content="Imágenes / GIF" IsChecked="True" Margin="0,0,12,0"/>
+                                    <CheckBox x:Name="TransitionVideoCheck" Content="Videos" IsChecked="True"/>
+                                </WrapPanel>
+                                <!-- Parámetros de Cámara, Cine, Gesto y Desenfoque (1.1.1): lo mismo que las líneas del Director (prompt). -->
+                                <WrapPanel x:Name="CameraOptionsPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Cámara:" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="CameraModeCombo" Width="185" Height="25" Margin="6,0,0,0" SelectedIndex="0" SelectionChanged="EffectOption_Changed"
+                                                  ToolTip="Encuadrar: sigue al personaje elegido. Quien habla: salta a cada personaje que empieza una línea. Punto: zoom sobre el centro movido X/Y. Plano general: vuelve al cuadro completo.">
+                                            <ComboBoxItem Content="Encuadrar al personaje"/><ComboBoxItem Content="Seguir a quien habla"/><ComboBoxItem Content="Punto del cuadro"/><ComboBoxItem Content="Plano general"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Zoom ×:" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="CameraZoomBox" Width="48" Height="25" Margin="5,0,0,0" Text="1.4" VerticalContentAlignment="Center" ToolTip="1 a 3 (1.4 = 140 %). El plano general siempre es 1."/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Movimiento ms:" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="CameraMoveBox" Width="58" Height="25" Margin="5,0,0,0" Text="300" VerticalContentAlignment="Center" ToolTip="0 a 5000 ms; 0 = corte seco."/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Enfoque:" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="CameraFocusCombo" Width="80" Height="25" Margin="5,0,0,0" SelectedIndex="0" ToolTip="Cara: la parte superior del render. Cuerpo: su centro.">
+                                            <ComboBoxItem Content="cara"/><ComboBoxItem Content="cuerpo"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Text="Ajuste X:" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="CameraOffsetXBox" Width="50" Height="25" Margin="5,0,10,0" Text="0" VerticalContentAlignment="Center" ToolTip="±640 px; negativo mueve el centro a la izquierda."/>
+                                        <TextBlock Text="Y:" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="CameraOffsetYBox" Width="50" Height="25" Margin="5,0,0,0" Text="0" VerticalContentAlignment="Center" ToolTip="±360 px; negativo mueve el centro hacia arriba."/>
+                                    </StackPanel>
+                                </WrapPanel>
+                                <WrapPanel x:Name="CinemaOptionsPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Barras:" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="CinemaModeCombo" Width="95" Height="25" Margin="6,0,0,0" SelectedIndex="0" SelectionChanged="EffectOption_Changed"
+                                                  ToolTip="Las barras siguen en las escenas siguientes del episodio hasta un bloque «Quitar».">
+                                            <ComboBoxItem Content="Mostrar"/><ComboBoxItem Content="Quitar"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Estilo:" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="CinemaStyleCombo" Width="165" Height="25" Margin="6,0,0,0" SelectedIndex="0">
+                                            <ComboBoxItem Content="Cerrado (barras anchas)"/><ComboBoxItem Content="Abierto (barras finas)"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Transición ms:" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="CinemaMoveBox" Width="58" Height="25" Margin="5,0,0,0" Text="800" VerticalContentAlignment="Center" ToolTip="0 a 5000 ms que tardan las barras en entrar o salir; 0 = de golpe."/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Capas:" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="CinemaLayersCombo" Width="170" Height="25" Margin="6,0,0,0" SelectedIndex="0" SelectionChanged="EffectOption_Changed"
+                                                  ToolTip="Dónde va el Cortador de galletas en VEGAS. Lo que esté delante de una capa con barras también las lleva.">
+                                            <ComboBoxItem Content="Todas las capas"/><ComboBoxItem Content="Solo personajes"/><ComboBoxItem Content="Personajes elegidos…"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <ListBox x:Name="CinemaCharactersList" Width="230" Height="84" Margin="0,0,0,4" SelectionMode="Multiple" DisplayMemberPath="Name" Visibility="Collapsed"
+                                             ToolTip="Pulsa para marcar o desmarcar. Sin ninguno de ellos en pantalla no hay barras."/>
+                                </WrapPanel>
+                                <WrapPanel x:Name="GestureOptionsPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Gesto:" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="GestureModeCombo" Width="200" Height="25" Margin="6,0,0,0" SelectedIndex="0" SelectionChanged="EffectOption_Changed"
+                                                  ToolTip="Una vez: el personaje elegido. Quien habla: desde aquí, cada personaje que empieza una línea (hasta «Dejar de gesticular»).">
+                                            <ComboBoxItem Content="Este personaje, una vez"/><ComboBoxItem Content="Quien habla, desde aquí"/><ComboBoxItem Content="Dejar de gesticular"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Movimientos:" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="GestureStepsCombo" Width="150" Height="25" Margin="6,0,0,0" IsEditable="True" Text="balanceo"
+                                                  ToolTip="«+» = a la vez, «,» = uno tras otro. Ej.: rebote, balanceo  ·  balanceo+rebote">
+                                            <ComboBoxItem Content="balanceo"/><ComboBoxItem Content="rebote"/><ComboBoxItem Content="balanceo+rebote"/>
+                                            <ComboBoxItem Content="balanceo, rebote"/><ComboBoxItem Content="rebote, balanceo"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Ángulo °:" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="GestureAngleBox" Width="44" Height="25" Margin="5,0,0,0" Text="5" VerticalContentAlignment="Center" ToolTip="0.5 a 20 grados de inclinación del balanceo."/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Estirar %:" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="GestureStretchBox" Width="44" Height="25" Margin="5,0,0,0" Text="8" VerticalContentAlignment="Center" ToolTip="-30 a 40 % del rebote; negativo aplasta. Mínimo ±1."/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Lado:" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="GestureSideCombo" Width="90" Height="25" Margin="5,0,0,0" SelectedIndex="0" ToolTip="Auto: hacia el centro de la escena, alternando.">
+                                            <ComboBoxItem Content="auto"/><ComboBoxItem Content="derecha"/><ComboBoxItem Content="izquierda"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Velocidad ×:" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="GestureSpeedBox" Width="44" Height="25" Margin="5,0,0,0" Text="1" VerticalContentAlignment="Center" ToolTip="0.5 a 3; 2 = el doble de rápido."/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Text="Eje:" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="GesturePivotCombo" Width="90" Height="25" Margin="5,0,0,0" SelectedIndex="0" ToolTip="Punto fijo del giro y del estiramiento.">
+                                            <ComboBoxItem Content="pies"/><ComboBoxItem Content="cintura"/><ComboBoxItem Content="centro"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </WrapPanel>
+                                <WrapPanel x:Name="BlurOptionsPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Desenfocar:" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="BlurTargetCombo" Width="165" Height="25" Margin="6,0,0,0" SelectedIndex="0" SelectionChanged="EffectOption_Changed"
+                                                  ToolTip="Dura hasta otro desenfoque del mismo objetivo.">
+                                            <ComboBoxItem Content="El personaje elegido"/><ComboBoxItem Content="Fondo"/><ComboBoxItem Content="Todos los personajes"/>
+                                            <ComboBoxItem Content="Imágenes / GIF"/><ComboBoxItem Content="Videos"/><ComboBoxItem Content="Todo el cuadro"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Estilo:" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="BlurStyleCombo" Width="185" Height="25" Margin="6,0,0,0" SelectedIndex="0" SelectionChanged="BlurStyleCombo_SelectionChanged"
+                                                  ToolTip="Los ajustes de «Desenfoque gaussiano» de VEGAS; Personalizado usa el valor escrito.">
+                                            <ComboBoxItem Content="Suavizar (0,02)"/><ComboBoxItem Content="Desenfoque ligero (0,01)"/><ComboBoxItem Content="Nítido / quitar (0)"/><ComboBoxItem Content="Personalizado"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,4">
+                                        <TextBlock Text="Valor:" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="BlurAmountBox" Width="58" Height="25" Margin="5,0,0,0" Text="0.02" VerticalContentAlignment="Center"
+                                                 TextChanged="BlurAmountBox_TextChanged" ToolTip="0 a 0.1, el rango horizontal y vertical de VEGAS (se anima igual en los dos)."/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Text="Transición ms:" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="BlurMoveBox" Width="58" Height="25" Margin="5,0,0,0" Text="0" VerticalContentAlignment="Center" ToolTip="0 a 5000 ms que tarda en llegar al nuevo valor; 0 = de golpe."/>
+                                    </StackPanel>
+                                </WrapPanel>
+                                <WrapPanel x:Name="VideoOptionsPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Video en:" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="VideoLayerCombo" Width="155" Height="25" Margin="6,0,12,0" SelectedIndex="1" SelectionChanged="VideoLayerCombo_SelectionChanged">
+                                        <ComboBoxItem Content="Fondo fijo"/><ComboBoxItem Content="Orden del guion"/><ComboBoxItem Content="Encima de todo"/>
+                                    </ComboBox>
+                                    <CheckBox x:Name="VideoGreenScreenCheck" Content="Pantalla verde" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBlock Text="Color #" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="VideoKeyColorBox" Width="70" Height="25" Margin="4,0,10,0" Text="00FF00" VerticalContentAlignment="Center"/>
+                                    <TextBlock Text="Tolerancia" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="VideoKeyToleranceBox" Width="50" Height="25" Margin="4,0,0,0" Text="0.30" VerticalContentAlignment="Center"
+                                             ToolTip="0.01 a 1.00; subir elimina más tonos verdes"/>
+                                </WrapPanel>
+                                <WrapPanel x:Name="VisualTransformPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <StackPanel x:Name="BackgroundZoomPanel" Orientation="Horizontal" Margin="0,0,10,0" Visibility="Collapsed">
+                                        <TextBlock Text="Zoom:" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="BackgroundZoomCombo" Width="78" Height="25" Margin="5,0,0,0" SelectionChanged="BackgroundZoomCombo_SelectionChanged"
+                                                  ToolTip="Fondo más grande que el cuadro: se puede desplazar o animar (paneo) sin mostrar bordes negros y sin cambiar de escala al empezar a moverse. Ajusta Ancho/Alto (100 % = 1280×720).">
+                                            <ComboBoxItem Content="100 %" Tag="1"/>
+                                            <ComboBoxItem Content="115 %" Tag="1.15"/>
+                                            <ComboBoxItem Content="125 %" Tag="1.25"/>
+                                            <ComboBoxItem Content="150 %" Tag="1.5"/>
+                                            <ComboBoxItem Content="175 %" Tag="1.75"/>
+                                            <ComboBoxItem Content="200 %" Tag="2"/>
+                                            <ComboBoxItem Content="250 %" Tag="2.5"/>
+                                            <ComboBoxItem Content="300 %" Tag="3"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <TextBlock Text="Ancho máx.:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="VisualWidthBox" Width="55" Height="25" Margin="5,0,10,0" Text="960" VerticalContentAlignment="Center" TextChanged="VisualSizeBox_TextChanged" ToolTip="64–1280 px (fondo: hasta 3840 = zoom 300 %). El recurso mantiene su proporción."/>
+                                    <TextBlock Text="Alto máx.:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="VisualHeightBox" Width="55" Height="25" Margin="5,0,10,0" Text="700" VerticalContentAlignment="Center" TextChanged="VisualSizeBox_TextChanged" ToolTip="64–720 px (fondo: hasta 2160 = zoom 300 %). El recurso mantiene su proporción."/>
+                                    <TextBlock Text="Mover X:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="VisualOffsetXBox" Width="54" Height="25" Margin="5,0,10,0" Text="0" VerticalContentAlignment="Center" ToolTip="Píxeles; negativo mueve a la izquierda."/>
+                                    <TextBlock Text="Mover Y:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="VisualOffsetYBox" Width="54" Height="25" Margin="5,0,10,0" Text="0" VerticalContentAlignment="Center" ToolTip="Píxeles; negativo mueve hacia arriba."/>
+                                    <CheckBox x:Name="VisualFlipHorizontalCheck" Content="Invertir horizontal" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <CheckBox x:Name="VisualFlipVerticalCheck" Content="Invertir vertical" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBlock Text="Rotación (°):" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="VisualRotationBox" Width="55" Height="25" Margin="5,0,0,0" Text="0" VerticalContentAlignment="Center"
+                                             ToolTip="-180 a 180 grados; positivo gira en sentido horario. El fondo se amplía para cubrir las esquinas."/>
+                                </WrapPanel>
+                                <WrapPanel x:Name="VisualMotionPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Animar ΔX:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="MotionOffsetXBox" Width="58" Height="25" Margin="5,0,12,0" Text="0" VerticalContentAlignment="Center" ToolTip="Desplazamiento desde X inicial hasta X final, en píxeles."/>
+                                    <TextBlock Text="ΔY:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="MotionOffsetYBox" Width="58" Height="25" Margin="5,0,12,0" Text="0" VerticalContentAlignment="Center" ToolTip="Desplazamiento desde Y inicial hasta Y final, en píxeles."/>
+                                    <TextBlock Text="Girar Δ°:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="MotionRotationBox" Width="58" Height="25" Margin="5,0,12,0" Text="0" VerticalContentAlignment="Center" ToolTip="Grados adicionales durante la animación; positivo gira en sentido horario."/>
+                                    <TextBlock Text="Duración ms:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="MotionDurationBox" Width="85" Height="25" Margin="5,0,5,0" Text="0" VerticalContentAlignment="Center" ToolTip="0: toda la duración visible de la capa. Al terminar, mantiene su posición final."/>
+                                    <Button Content="↳ Seguir desde el anterior" Height="25" Padding="8,0" Margin="7,0,0,0" Click="ContinueFromPrevious_Click"
+                                            ToolTip="Empieza donde terminó el bloque anterior del mismo fondo, personaje, imagen o video (tamaño/zoom, posición y giro finales). Luego pon el Animar ΔX/ΔY de este tramo: el movimiento continúa sin saltos."/>
+                                </WrapPanel>
+                                <WrapPanel x:Name="VisualTransitionPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Al entrar en un cruce:" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="VisualTransitionOverrideCombo" Width="215" Height="25" Margin="7,0,0,0" SelectedIndex="0"
+                                              SelectionChanged="VegasEffectSelection_Changed"
+                                              ToolTip="Cada fondo, render, imagen/GIF o video puede heredar, cortar o elegir su propio fundido.">
+                                        <ComboBoxItem Content="Heredar selección por capas"/>
+                                        <ComboBoxItem Content="Corte a mitad"/>
+                                        <ComboBoxItem Content="Fundido normal"/>
+                                        <ComboBoxItem Content="Disolvente aditivo"/>
+                                        <ComboBoxItem Content="Flash suave"/>
+                                        <ComboBoxItem Content="Barrido lineal"/>
+                                        <ComboBoxItem Content="Plugin del catálogo…"/>
+                                    </ComboBox>
+                                </WrapPanel>
+                                <WrapPanel x:Name="VegasPluginPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Plugin de VEGAS:" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="VegasPluginCombo" Width="290" Height="25" Margin="7,0,12,0"
+                                              IsEditable="True" IsTextSearchEnabled="True" DisplayMemberPath="DisplayName"
+                                              SelectionChanged="VegasPluginCombo_SelectionChanged"
+                                              ToolTip="Buscar por nombre. Los plugins exactos se aplican al abrir la exportación en VEGAS."/>
+                                    <TextBlock Text="Preset:" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="VegasPresetCombo" Width="215" Height="25" Margin="7,0,0,0"
+                                              IsEditable="True" IsTextSearchEnabled="True"
+                                              ToolTip="Elige uno de los presets publicados por el plugin."/>
+                                </WrapPanel>
+                                <WrapPanel x:Name="AudioOptionsPanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Si cambia la duración:" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="AudioDurationModeCombo" Width="175" Height="25" Margin="7,0,0,0" SelectedIndex="0">
+                                        <ComboBoxItem Content="Recortar / repetir"/><ComboBoxItem Content="Ajustar velocidad"/>
+                                    </ComboBox>
+                                </WrapPanel>
+                                <WrapPanel x:Name="ResourceVolumePanel" Margin="0,5,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Volumen del recurso (%):" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="ResourceVolumeBox" Width="58" Height="25" Margin="7,0,10,0"
+                                             Text="100" VerticalContentAlignment="Center" ToolTip="0 = silencio; 100 = volumen original; 200 = doble amplitud."/>
+                                    <TextBlock x:Name="ResourceVolumeHint" Text="0–200%; música 25%, SFX 100%, video 0% por defecto"
+                                               Foreground="{DynamicResource Theme.TextMuted}" VerticalAlignment="Center"/>
+                                </WrapPanel>
+                                <WrapPanel x:Name="SpriteFolderPanel" Orientation="Horizontal" Margin="0,5,0,0">
+                                    <TextBlock Text="Carpeta:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <ComboBox x:Name="CharacterFolderCombo" Width="250" Height="27" DisplayMemberPath="Name" SelectionChanged="CharacterFolderCombo_SelectionChanged"
+                                              ToolTip="{Binding SelectedItem.Name, RelativeSource={RelativeSource Self}}"/>
+                                    <Button x:Name="AssetFolderUpButton" Content="↑" Width="27" Padding="0" Margin="5,0,0,0" ToolTip="Subir a la carpeta anterior" Click="AssetFolderUp_Click"/>
+                                    <Button x:Name="BrowseSpriteFolderButton" Content="Elegir…" Padding="7,2" Margin="5,0,0,0" Click="BrowseSpriteFolder_Click"/>
+                                    <CheckBox x:Name="SpriteSubfoldersCheck" Content="Incluir subcarpetas" Margin="12,0,0,0" VerticalAlignment="Center" Checked="SpriteSubfoldersCheck_Changed" Unchecked="SpriteSubfoldersCheck_Changed"/>
+                                    <TextBlock Text="Buscar:" Margin="12,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="SpriteNameSearchBox" Width="130" Height="25" TextChanged="SpriteNameSearchBox_TextChanged"/>
+                                    <Border x:Name="SelectedAssetPreviewPanel" Width="105" Height="62" Margin="9,0,0,0" BorderBrush="{DynamicResource Theme.Border}" BorderThickness="1" Visibility="Collapsed">
+                                        <Grid>
+                                            <Image x:Name="SelectedAssetThumbnail" Margin="2" Stretch="Uniform"/>
+                                            <TextBlock x:Name="SelectedAssetThumbnailText" Text="Selecciona una imagen" Foreground="{DynamicResource Theme.TextMuted}" FontSize="10"
+                                                       TextAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Center" Margin="4"/>
+                                        </Grid>
+                                    </Border>
+                                </WrapPanel>
+                            </StackPanel>
+                            <TextBlock Grid.Row="4" Margin="0,7,0,0" VerticalAlignment="Top" Text="Texto / valor:"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3" x:Name="ScriptBlockTextBox" Margin="0,7,0,0"
+                                     Height="75" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+
+                           </Grid>
+                          </ScrollViewer>
+                          <Grid Grid.Row="1" Margin="0,8,0,0">
+                              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                              <TextBlock x:Name="ScriptBlockHintText" Foreground="{DynamicResource Theme.TextMuted}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0"
+                                         Text="Diálogo: personaje + texto. Los overrides vacíos heredan el perfil base."/>
+                              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                  <Button MinWidth="105" Padding="10,4" Content="Nuevo bloque" Click="ClearBlockEditor_Click"/>
+                                  <Button MinWidth="112" Margin="6,0,0,0" Padding="12,4" Content="Guardar bloque" Style="{StaticResource AccentButton}" Click="SaveBlock_Click"/>
+                              </StackPanel>
+                          </Grid>
+                        </Grid>
+                                </TabItem>
+                                <TabItem>
+                                    <TabItem.Header><StackPanel Orientation="Horizontal"><TextBlock Text="▶" Margin="0,0,6,0"/><TextBlock Text="Preview"/></StackPanel></TabItem.Header>
+                        <Grid Margin="8">
+                            <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <Border Background="Black" CornerRadius="6" ClipToBounds="True">
+                                <MediaElement x:Name="ScenePreviewPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" ScrubbingEnabled="True"
+                                              MediaOpened="ScenePreview_MediaOpened" MediaEnded="ScenePreview_MediaEnded"/>
+                            </Border>
+                            <Border Grid.Row="1" Margin="0,6,0,0" Style="{StaticResource PlayerBar}">
+                            <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <!-- Línea de tiempo: pulsar o arrastrar en cualquier punto salta ahí; ← / → mueven 1 s, RePág / AvPág 5 s.
+                                 IsMoveToPointEnabled en False: con True, Slider marca la pulsación como atendida antes que
+                                 SceneSeekSlider_MouseDown y no se podría arrastrar desde la pista (el código ya salta al punto). -->
+                            <DockPanel>
+                                <TextBlock x:Name="ScenePreviewTimeText" DockPanel.Dock="Right" Margin="12,0,2,0" Style="{StaticResource TimeText}" Text="00:00.000 / 00:00.000"/>
+                                <Slider x:Name="SceneSeekSlider" Minimum="0" Maximum="1" SmallChange="1000" LargeChange="5000" VerticalAlignment="Center" IsMoveToPointEnabled="False"
+                                        ToolTip="Pulsa o arrastra en cualquier punto para ir a ese momento del video"
+                                        PreviewMouseLeftButtonDown="SceneSeekSlider_MouseDown" PreviewMouseMove="SceneSeekSlider_MouseMove"
+                                        PreviewMouseLeftButtonUp="SceneSeekSlider_MouseUp" LostMouseCapture="SceneSeekSlider_LostMouseCapture"
+                                        ValueChanged="SceneSeekSlider_ValueChanged"/>
+                            </DockPanel>
+                            <DockPanel Grid.Row="1" Margin="0,6,0,0">
+                                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                                    <Button x:Name="ToggleScenePreviewButton" MinWidth="112" Height="29" Padding="10,3" Content="▶ Reproducir" Style="{StaticResource AccentButton}" Click="ToggleScenePreview_Click" ToolTip="Reproduce la escena; actualiza el video si el guion cambió"/>
+                                    <Button Margin="6,0,0,0" MinWidth="82" Height="29" Padding="10,3" Content="■ Detener" Click="StopScenePreview_Click"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <TextBlock Margin="6,0,4,0" VerticalAlignment="Center" Foreground="{DynamicResource Theme.TextMuted}" Text="VEGAS:"/>
+                                    <ComboBox x:Name="VegasExportResolutionCombo" Width="92" Height="29" VerticalContentAlignment="Center"
+                                              ToolTip="Resolución 16:9 de las pistas visuales exportadas">
+                                        <ComboBoxItem Content="720p" Tag="720" IsSelected="True"/>
+                                        <ComboBoxItem Content="1080p" Tag="1080"/>
+                                    </ComboBox>
+                                    <ComboBox x:Name="VegasExportModeCombo" Width="105" Height="29" Margin="6,0,0,0"
+                                              VerticalContentAlignment="Center" ToolTip="Normal: originales con ajustes editables de Pan/Crop. Legacy: medios preparados como antes.">
+                                        <ComboBoxItem Content="Normal" Tag="Normal" IsSelected="True"/>
+                                        <ComboBoxItem Content="Legacy" Tag="Legacy"/>
+                                    </ComboBox>
+                                    <ComboBox x:Name="VegasAudioModeCombo" Width="150" Height="29" Margin="6,0,0,0"
+                                              VerticalContentAlignment="Center" ToolTip="Por personaje: una pista de voz por personaje en todo el proyecto; música/SFX agrupados sin solapes. Legacy: cada audio en su propia pista.">
+                                        <ComboBoxItem Content="Audio: por personaje" Tag="PerCharacter" IsSelected="True"/>
+                                        <ComboBoxItem Content="Audio: Legacy" Tag="Legacy"/>
+                                    </ComboBox>
+                                    <Button Margin="6,0,0,0" MinWidth="132" Height="29" Padding="10,3" Content="Exportar a VEGAS" Style="{StaticResource AccentButton}" Click="ExportVegas_Click" ToolTip="Crea un script para importar la escena como pistas editables en VEGAS"/>
+                                    <Button Margin="6,0,0,0" MinWidth="132" Height="29" Padding="10,3" Content="Exportar episodio" Click="ExportEpisodeVegas_Click" ToolTip="Todas las escenas del episodio seleccionado, una tras otra, en un solo proyecto VEGAS con una región por escena. Genera antes las voces que falten."/>
+                                    <Button Margin="6,0,0,0" MinWidth="100" Height="29" Padding="10,3" Content="Abrir video" Click="OpenSceneVideo_Click"/>
+                                </StackPanel>
+                            </DockPanel>
+                            </Grid>
+                            </Border>
+                        </Grid>
+                                </TabItem>
+                                <TabItem>
+                                    <TabItem.Header><StackPanel Orientation="Horizontal"><TextBlock Text="♫" Margin="0,0,6,0"/><TextBlock Text="Voces grabadas"/></StackPanel></TabItem.Header>
+                                <Grid Margin="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Importa WAV o carga voces ya incorporadas. Transcribe localmente, escucha y revisa el texto antes de guardarlo para el Director IA." TextWrapping="Wrap"/>
+                                    <WrapPanel Grid.Row="1" Margin="0,8,0,7">
+                                        <Button Content="Añadir WAV…" Padding="9,4" Click="AddRecordedVoices_Click"/>
+                                        <Button Content="Cargar voces de escena" Margin="5,0,0,0" Padding="9,4" Click="LoadSceneRecordedVoices_Click"/>
+                                        <Button Content="↑" Margin="7,0,0,0" Padding="10,4" Click="MoveRecordedVoiceUp_Click"/>
+                                        <Button Content="↓" Margin="4,0,0,0" Padding="10,4" Click="MoveRecordedVoiceDown_Click"/>
+                                        <Button Content="Quitar" Margin="7,0,0,0" Padding="9,4" Click="RemoveRecordedVoices_Click"/>
+                                        <Button Content="▶ Escuchar" Margin="7,0,0,0" Padding="9,4" Click="ListenRecordedVoice_Click"/>
+                                        <Button Content="■ Detener" Margin="4,0,0,0" Padding="9,4" Click="StopRecordedVoice_Click"/>
+                                        <ComboBox x:Name="RecordedVoiceCharacterCombo" Width="155" Margin="18,0,0,0" DisplayMemberPath="Name" IsEditable="True" ToolTip="Quién habla (solo etiqueta): dice al Director quién es para mostrar sus renders y agrupa su pista en VEGAS. «Narrador» = narración. No usa la voz del personaje en Voice Lab. Escribe un nombre nuevo para crearlo sin voz."/>
+                                        <Button Content="Asignar personaje" Margin="5,0,0,0" Padding="9,4" Click="AssignRecordedVoiceCharacter_Click" ToolTip="Asigna el personaje (o el nombre escrito) a las tomas seleccionadas"/>
+                                        <ComboBox x:Name="RecordedVoiceProfileCombo" Width="185" Margin="12,0,0,0" DisplayMemberPath="Name" ToolTip="Opcional. Es la ÚNICA voz que se usa si luego pulsas «Regenerar bloque con TTS» (con confirmación). La grabación nunca se reemplaza sola."/>
+                                        <Button Content="Asignar voz" Margin="5,0,0,0" Padding="9,4" Click="AssignRecordedVoiceProfile_Click"/>
+                                    </WrapPanel>
+                                    <WrapPanel Grid.Row="2" Margin="0,0,0,7">
+                                        <TextBlock Text="Modelo:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                        <ComboBox x:Name="SttModelCombo" Width="125" SelectedIndex="1"
+                                                  ToolTip="large-v3-turbo: casi la calidad de large-v3 y mucho más rápido (recomendado con GPU). En GPU se usa float16 automáticamente; en CPU, int8.">
+                                            <ComboBoxItem Content="base"/><ComboBoxItem Content="small"/><ComboBoxItem Content="medium"/><ComboBoxItem Content="large-v3"/><ComboBoxItem Content="large-v3-turbo"/>
+                                        </ComboBox>
+                                        <TextBlock Text="Equipo:" VerticalAlignment="Center" Margin="12,0,5,0"/>
+                                        <ComboBox x:Name="SttDeviceCombo" Width="115" SelectedIndex="0">
+                                            <ComboBoxItem Content="auto"/><ComboBoxItem Content="cpu"/><ComboBoxItem Content="cuda"/>
+                                        </ComboBox>
+                                        <TextBlock Text="Idioma:" VerticalAlignment="Center" Margin="12,0,5,0"/>
+                                        <ComboBox x:Name="SttLanguageCombo" Width="83" SelectedIndex="0">
+                                            <ComboBoxItem Content="es"/><ComboBoxItem Content="auto"/><ComboBoxItem Content="en"/><ComboBoxItem Content="ja"/>
+                                        </ComboBox>
+                                        <CheckBox x:Name="SttHintCheck" Content="Nombres como pista" IsChecked="True" VerticalAlignment="Center" Margin="12,0,0,0"
+                                                  ToolTip="Pasa al reconocedor los nombres de los personajes (Fluttershy, Pinkie Pie…) para que los escriba como en tu proyecto."/>
+                                        <Button x:Name="TranscribePendingButton" Content="Transcribir lote (sin texto)" Margin="12,0,0,0" Padding="9,4" Click="TranscribePendingVoices_Click"/>
+                                        <Button x:Name="TranscribeSelectedButton" Content="Transcribir selección" Margin="5,0,0,0" Padding="9,4" Click="TranscribeSelectedVoices_Click"/>
+                                        <Button x:Name="CancelTranscriptionButton" Content="Cancelar STT" Margin="5,0,0,0" Padding="9,4" Click="CancelTranscription_Click" IsEnabled="False"/>
+                                    </WrapPanel>
+                                    <DataGrid x:Name="RecordedVoicesGrid" Grid.Row="3" AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Extended" SelectionUnit="FullRow" RowHeaderWidth="0" CellEditEnding="RecordedVoicesGrid_CellEditEnding">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="#" Binding="{Binding Order}" IsReadOnly="True" Width="38"/>
+                                            <DataGridTextColumn Header="Archivo" Binding="{Binding FileName}" IsReadOnly="True" Width="185"/>
+                                            <DataGridTextColumn Header="Tipo" Binding="{Binding KindText}" IsReadOnly="True" Width="80"/>
+                                            <DataGridTextColumn Header="Quién habla" Binding="{Binding CharacterName}" IsReadOnly="True" Width="125"/>
+                                            <DataGridTextColumn Header="Voz TTS (opcional)" Binding="{Binding VoiceName}" IsReadOnly="True" Width="160"/>
+                                            <DataGridTextColumn Header="Duración" Binding="{Binding DurationText}" IsReadOnly="True" Width="75"/>
+                                            <DataGridTextColumn Header="Transcripción revisable" Binding="{Binding Transcript, UpdateSourceTrigger=LostFocus}" Width="*"/>
+                                            <DataGridCheckBoxColumn Header="Revisado" Binding="{Binding IsReviewed}" Width="80"/>
+                                            <DataGridTextColumn Header="STT" Binding="{Binding TranscriptionState}" IsReadOnly="True" Width="165">
+                                                <DataGridTextColumn.ElementStyle>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="ToolTip" Value="{Binding TranscriptionDetail}"/>
+                                                    </Style>
+                                                </DataGridTextColumn.ElementStyle>
+                                            </DataGridTextColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                    <DockPanel Grid.Row="4" Margin="0,7,0,0">
+                                        <TextBlock DockPanel.Dock="Left" Text="Indicaciones adicionales para el Director:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBox x:Name="RecordedVoiceNotesBox" Height="27" ToolTip="Se incorporan a las notas de dirección de la escena"/>
+                                    </DockPanel>
+                                    <DockPanel Grid.Row="5" Margin="0,7,0,0">
+                                        <Button x:Name="ImportRecordedVoicesButton" DockPanel.Dock="Right" Content="Incorporar voces a la escena" Padding="10,4" Style="{StaticResource AccentButton}" Click="ImportRecordedVoices_Click" ToolTip="Añade nuevas tomas y guarda las correcciones de las voces ya incorporadas"/>
+                                        <TextBlock x:Name="RecordedVoiceStatusText" Text="Selecciona una escena y añade archivos WAV." VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                    </DockPanel>
+                                </Grid>
+                                </TabItem>
+                                <TabItem>
+                                    <TabItem.Header><StackPanel Orientation="Horizontal"><TextBlock Text="☰" Margin="0,0,6,0"/><TextBlock Text="Director (prompt)"/></StackPanel></TabItem.Header>
+                                <Grid Margin="9">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="1*" MinHeight="60"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="2*" MinHeight="60"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Escribe las instrucciones de la escena. Revisa los recursos sugeridos antes de incorporarlos al guion." TextWrapping="Wrap"/>
+                                    <Grid Grid.Row="1">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBox x:Name="DirectorPromptBox" Margin="0,5,0,0" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                                 ToolTip="Una instrucción por línea:&#10;[FONDO] habitación | bordes=si&#10;[MOSTRAR] Bart | izquierda | medio cuerpo | ancho=900 | x=40 | voltear h=si | rotacion=12&#10;[VIDEO] clip | croma=si | capa=sobre | rotacion=-8&#10;Bart: Hola"/>
+                                        <WrapPanel Grid.Row="1" Margin="0,7,0,0">
+                                            <Button x:Name="DirectorDraftButton" MinWidth="125" Padding="10,4" Content="Preparar borrador" Style="{StaticResource AccentButton}" Click="DirectorDraft_Click"/>
+                                            <Button x:Name="DirectorPickDraftAssetButton" Margin="7,0,0,0" Padding="10,4" Content="Elegir recurso de fila…" Click="PickDirectorDraftAsset_Click" ToolTip="Selecciona una fila de recurso y elige un archivo catalogado; después valida la edición"/>
+                                            <Button Margin="7,0,0,0" Padding="10,4" Content="Copiar escena" Click="CopySceneForDirector_Click" ToolTip="Elige bloque simplificado o JSON completo"/>
+                                            <Button Margin="7,0,0,0" Padding="10,4" Content="Copiar borrador" Click="CopyDraftForDirector_Click" ToolTip="Copia el borrador como bloque o JSON completo, incluidos WAV y cambios de la tabla"/>
+                                            <CheckBox x:Name="DirectorReplaceCheck" Margin="15,0,0,0" VerticalAlignment="Center" Content="Sustituir bloques actuales al aplicar"/>
+                                        </WrapPanel>
+                                    </Grid>
+                                    <GridSplitter Grid.Row="2" Height="6" Margin="0,6" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                                                  ToolTip="Arrastra para dar más espacio al prompt o a la tabla"/>
+                                    <DataGrid x:Name="DirectorDraftGrid" Grid.Row="3" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="False" BeginningEdit="DirectorDraftGrid_BeginningEdit" RowHeaderWidth="0">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Instrucción (editable)" Binding="{Binding Instruction, UpdateSourceTrigger=PropertyChanged}" Width="320"/>
+                                            <DataGridTextColumn Header="#" Binding="{Binding Order}" Width="40" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Tipo" Binding="{Binding Kind}" Width="95" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Personaje / recurso" Binding="{Binding Subject}" Width="190" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Texto" Binding="{Binding Text}" Width="*" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Ajustes" Binding="{Binding Parameters}" Width="240" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Estado" Binding="{Binding Status}" Width="220" IsReadOnly="True">
+                                                <DataGridTextColumn.ElementStyle>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="ToolTip" Value="{Binding Status}"/>
+                                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                    </Style>
+                                                </DataGridTextColumn.ElementStyle>
+                                            </DataGridTextColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                    <Grid Grid.Row="4" Margin="0,7,0,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="DirectorStatusText" Text="Selecciona una escena y prepara el borrador." TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <Button x:Name="DirectorValidateButton" Grid.Column="1" Margin="0,0,7,0" Padding="10,4" Content="Validar edición" Click="ValidateDirectorDraft_Click"/>
+                                        <Button x:Name="DirectorApplyButton" Grid.Column="2" MinWidth="145" Padding="10,4" Content="Aplicar al guion" Style="{StaticResource AccentButton}" IsEnabled="False" Click="DirectorApply_Click"/>
+                                    </Grid>
+                                </Grid>
+                                </TabItem>
+                                <TabItem>
+                                    <TabItem.Header><StackPanel Orientation="Horizontal"><TextBlock Text="✦" Margin="0,0,6,0"/><TextBlock Text="Director IA"/></StackPanel></TabItem.Header>
+                                <Grid Margin="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="1*" MinHeight="60"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="2*" MinHeight="60"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock x:Name="AiDirectorIntroLabel" Text="Selecciona una escena. La IA preparará un borrador revisable usando los recursos catalogados." TextWrapping="Wrap"/>
+                                    <WrapPanel Grid.Row="1" Margin="0,9,0,8">
+                                        <TextBlock x:Name="AiDirectorProviderLabel" VerticalAlignment="Center" Text="Modelo:" Margin="0,0,6,0"/>
+                                        <ComboBox x:Name="AiDirectorModelBox" Width="260" Height="29" VerticalContentAlignment="Center" SelectionChanged="AiModelSelectionChanged"/>
+                                        <TextBlock x:Name="AiEffortLabel" VerticalAlignment="Center" Margin="8,0,4,0" Text="Esfuerzo:" Visibility="Collapsed"/>
+                                        <ComboBox x:Name="AiEffortCombo" Width="125" Height="29" VerticalContentAlignment="Center" Visibility="Collapsed"
+                                                  ToolTip="Cuánto razona el modelo antes de responder (solo modelos que lo admiten). Más esfuerzo = más lento y más tokens. El predeterminado se cambia en «Configurar IA»."/>
+                                        <Button Margin="6,0,0,0" Padding="9,4" Content="Configurar IA…" Click="ConfigureAi_Click"/>
+                                        <Button Margin="6,0,0,0" Padding="9,4" Content="Prompt maestro…" Click="ViewMasterPrompt_Click" ToolTip="Ver, editar o restablecer las instrucciones base enviadas al modelo para este proyecto"/>
+                                        <Button Margin="6,0,0,0" Padding="9,4" Content="Recargar modelos" Click="RefreshOllamaModels_Click" ToolTip="Vuelve a leer los modelos instalados en Ollama"/>
+                                        <TextBlock VerticalAlignment="Center" Text="Modo:" Margin="14,0,6,0"/>
+                                        <ComboBox x:Name="AiDirectorModeCombo" Width="240" SelectedIndex="0">
+                                            <ComboBoxItem Content="Historia desde prompt"/>
+                                            <ComboBoxItem Content="Montar voces grabadas"/>
+                                        </ComboBox>
+                                        <TextBlock VerticalAlignment="Center" Margin="12,0,0,0" Text="Las voces grabadas deben estar incorporadas a la escena."/>
+                                        <Button x:Name="VegasCatalogButton" Margin="12,0,0,0" Padding="10,2" Content="Transiciones VEGAS…" Click="ImportVegasTransitionCatalog_Click"
+                                                ToolTip="Importa transiciones_vegas.txt (script scripts/vegas/Listar_transiciones_14_o_superior.cs) para que el Director IA y el editor usen los plugins que tienes instalados (NewBlue, Sapphire, Boris…)."/>
+                                    </WrapPanel>
+                                    <Grid Grid.Row="2">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBox x:Name="AiDirectorPromptBox" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                                 ToolTip="Describe la trama, los personajes, el tono, los lugares, los recursos y la duración deseada."/>
+                                        <WrapPanel Grid.Row="1" Margin="0,8,0,0">
+                                            <Button x:Name="AiGenerateButton" Padding="10,4" Content="Generar borrador con IA" Style="{StaticResource AccentButton}" Click="AiGenerateDraft_Click"/>
+                                            <Button x:Name="AiEpisodeButton" Margin="6,0,0,0" Padding="10,4" Content="Generar episodio (varias escenas)" Click="AiGenerateEpisode_Click" ToolTip="Historia: la IA divide la premisa en escenas y dirige cada una. Voces grabadas: reparte las tomas de la escena seleccionada en escenas nuevas. Siempre crea escenas nuevas al final del episodio."/>
+                                            <Button x:Name="AiPickDraftAssetButton" Margin="6,0,0,0" Padding="10,4" Content="Elegir recurso de fila…" Click="PickDirectorDraftAsset_Click" ToolTip="Sustituye el fondo, render, música o efecto de la fila seleccionada"/>
+                                            <Button Margin="6,0,0,0" Padding="10,4" Content="Copiar borrador" Click="CopyDraftForDirector_Click" ToolTip="Copia el borrador como bloque o JSON completo para conservar voces y ajustes"/>
+                                            <Button x:Name="AiCancelButton" Margin="6,0,0,0" Padding="10,4" Content="Cancelar" IsEnabled="False" Click="AiCancel_Click"/>
+                                            <TextBlock VerticalAlignment="Center" Margin="14,0,0,0" Text="Revisa los recursos, los diálogos y el orden antes de aplicar."/>
+                                        </WrapPanel>
+                                    </Grid>
+                                    <GridSplitter Grid.Row="3" Height="6" Margin="0,6" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                                                  ToolTip="Arrastra para dar más espacio a la premisa o a la tabla"/>
+                                    <DataGrid x:Name="AiDraftGrid" Grid.Row="4" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="False" BeginningEdit="DirectorDraftGrid_BeginningEdit" RowHeaderWidth="0">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Instrucción (editable)" Binding="{Binding Instruction, UpdateSourceTrigger=PropertyChanged}" Width="320"/>
+                                            <DataGridTextColumn Header="#" Binding="{Binding Order}" Width="40" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Tipo" Binding="{Binding Kind}" Width="100" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Personaje / recurso" Binding="{Binding Subject}" Width="180" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Texto" Binding="{Binding Text}" Width="*" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Ajustes" Binding="{Binding Parameters}" Width="180" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Estado" Binding="{Binding Status}" Width="210" IsReadOnly="True"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                    <DockPanel Grid.Row="5" Margin="0,7,0,0">
+                                        <Button x:Name="AiApplyButton" DockPanel.Dock="Right" Padding="10,4" Content="Aplicar borrador al guion" Style="{StaticResource AccentButton}" IsEnabled="False" Click="DirectorApply_Click"/>
+                                        <Button x:Name="AiValidateButton" DockPanel.Dock="Right" Margin="0,0,7,0" Padding="10,4" Content="Validar edición" Click="ValidateDirectorDraft_Click"/>
+                                        <TextBlock x:Name="AiDirectorStatusText" Text="Escribe la premisa y elige un modelo de Ollama." TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                </Grid>
+                                </TabItem>
+                            </TabControl>
+                        </Grid>
+
+                        <DockPanel Grid.Row="4" Margin="2,6,2,0">
+                            <TextBlock x:Name="ScriptStatusText" DockPanel.Dock="Left" Foreground="{DynamicResource Theme.TextMuted}" Text="Crea un episodio y una escena para empezar."/>
+                            <TextBlock x:Name="ScriptDurationText" DockPanel.Dock="Right" FontWeight="SemiBold" Text="Duración: 00:00.000"/>
+                        </DockPanel>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- Barra de estado. -->
+        <Border Grid.Row="3" Background="{DynamicResource Theme.StatusBar}" BorderBrush="{DynamicResource Theme.Border}" BorderThickness="0,1,0,0" Padding="16,6">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="CancelScanButton" Margin="0,0,10,0" Padding="10,3"
+                            Content="Cancelar escaneo" Visibility="Collapsed" Click="CancelScan_Click"/>
+                    <ProgressBar x:Name="WorkProgress" Width="220" Height="10" Visibility="Collapsed" IsIndeterminate="True"/>
+                </StackPanel>
+                <TextBlock x:Name="FooterText" VerticalAlignment="Center" Foreground="{DynamicResource Theme.TextMuted}" TextTrimming="CharacterEllipsis"
+                           Text="Listo."/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

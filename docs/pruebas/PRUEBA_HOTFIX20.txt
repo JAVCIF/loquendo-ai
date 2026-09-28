@@ -1,0 +1,21 @@
+PRUEBA · v0.9.0-alpha hotfix 20 (incluye 18 y 19: sigue también sus PRUEBA_*.txt)
+
+0. `dotnet build`. Haz una copia de project.db antes de probar episodios.
+
+A. Episodio desde historia
+1. Selecciona un episodio. Director IA → modo «Historia desde prompt». Escribe una premisa larga (varias situaciones).
+2. «Generar episodio (varias escenas)». Revisa el plan que propone y acepta.
+3. El estado avanza «Escena 1/N «…» · Ollama generando…». Al terminar deben aparecer escenas nuevas «01 · …», «02 · …».
+4. Abre cada escena: busca comentarios «⚠ Revisar» (instrucción + motivo). Prueba Cancelar a mitad: se conservan las ya creadas.
+
+B. Episodio desde voces grabadas
+1. Importa en UNA escena todas las tomas del episodio (idealmente más de 40), transcribe, corrige, incorpora.
+2. Deja esa escena seleccionada, modo «Montar voces grabadas», premisa opcional → «Generar episodio».
+3. Comprueba que las escenas nuevas contienen TODAS las tomas, en orden, cada una una sola vez, y que la escena original sigue igual.
+
+C. Exportar episodio a VEGAS
+1. Selector «Audio: por personaje» → «Exportar episodio». Debe generar voces que falten y abrir la carpeta.
+2. En VEGAS (proyecto vacío) ejecuta el script de tu versión: una pista de voz por personaje, las escenas seguidas y
+   una región por escena. Si el script falla al crear regiones, copia el error de VEGAS y mándamelo.
+3. Repite con «Audio: Legacy» y comprueba que vuelve al comportamiento anterior (una pista por audio).
+4. Exporta una sola escena con cada modo de audio.

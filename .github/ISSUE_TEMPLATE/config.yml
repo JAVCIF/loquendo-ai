@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "📖 Guía de contribución"
+    url: https://github.com/JAVCIF/loquendo-ai/blob/main/CONTRIBUTING.md
+    about: Qué incluir en un reporte y cómo enviar un pull request.
+  - name: "🔒 Vulnerabilidad de seguridad"
+    url: https://github.com/JAVCIF/loquendo-ai/security/advisories/new
+    about: Repórtala en privado, no en un issue público.
+  - name: "🗣 BALCON (voces SAPI 4)"
+    url: https://www.cross-plus-a.com/es/bconsole.htm
+    about: Descarga oficial de la consola de Balabolka; no es parte de este proyecto.

@@ -1,0 +1,23 @@
+# Sustituye calle y Bart por recursos catalogados en tu proyecto.
+# Disolvente y barrido prueban las transiciones previas; las cuatro últimas prueban NewBlue y Sapphire.
+[FONDO] calle
+[MOSTRAR] Bart | centro | medio cuerpo | ancho=720
+Bart: Prueba inicial de transiciones.
+[TRANSICION] cruce | duracion=900 | vegas=disolvente | capas=personajes
+[MOSTRAR] Bart | izquierda | primer plano | ancho=900
+Bart: Este es el disolvente aditivo.
+[TRANSICION] cruce | duracion=900 | capas=personajes
+[MOSTRAR] Bart | derecha | medio cuerpo | ancho=660 | transicion=barrido
+Bart: Ahora toca el barrido lineal.
+[TRANSICION] cruce | duracion=1000 | capas=personajes
+[MOSTRAR] Bart | centro | primer plano | ancho=850 | transicion=NewBlue MB Zoom | preset=Centered Zoom Blur
+Bart: Primer efecto NewBlue, con su preset elegido.
+[TRANSICION] cruce | duracion=1000 | capas=personajes
+[MOSTRAR] Bart | izquierda | medio cuerpo | ancho=720 | transicion=NewBlue 3D Page Turn | preset=Next Page - Book
+Bart: Segundo efecto NewBlue, pasando la página.
+[TRANSICION] cruce | duracion=1000 | capas=personajes
+[MOSTRAR] Bart | derecha | primer plano | ancho=950 | transicion=S_DissolveBlur
+Bart: Ahora entró Sapphire Dissolve Blur.
+[TRANSICION] cruce | duracion=1000 | capas=personajes
+[MOSTRAR] Bart | centro | medio cuerpo | ancho=700 | transicion=S_DissolveFlashbulbs
+Bart: Y cerramos con Sapphire Flashbulbs.

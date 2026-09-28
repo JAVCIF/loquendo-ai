@@ -1,0 +1,31 @@
+PRUEBA · v1.0.0-beta.1 (copia de project.db antes; si algo falla, adjunta %LOCALAPPDATA%\LoquendoAI\ia-diagnostico.log)
+
+0. Compila: dotnet build LoquendoAI.sln -c Release (y scripts\tts-publish.cmd si cambiaste el bridge; esta versión no lo toca).
+
+A. Transiciones de VEGAS en el Director IA
+1. Director IA → «Transiciones VEGAS…» → elige tu transiciones_vegas.txt.
+   Debe decir «Catálogo VEGAS importado: 363 transiciones…» (o las de tu instalación).
+2. Premisa corta con palabras de efecto, p. ej.: «Bart entra de golpe a la cocina, la pizza explota y hay un destello».
+   Genera. En la tabla, 1–3 filas deberían ser «[TRANSICION] cruce | … | vegas={…} | preset=…» (o un fondo/render tras un cruce
+   con «transicion=plugin | vegas={…}»).
+   En ia-diagnostico.log la línea «director:» dice «N transiciones VEGAS».
+3. Aplica, genera preview (verás un fundido en esos puntos) y «Exportar a VEGAS». Abre el script en VEGAS:
+   esas transiciones deben aplicarse con el plugin y preset indicados.
+4. Opcional, favoritas: crea %LOCALAPPDATA%\LoquendoAI\vegas_transiciones_favoritas.txt con
+      NewBlue MB Zoom | Centered Zoom Blur
+   y genera otro borrador: T1 en el contexto será esa.
+5. Editor de bloques: una transición «plugin» debe listar las transiciones importadas en «Plugin de VEGAS».
+
+B. Voces más rápidas
+6. Escena de historia con 8–10 diálogos NUEVOS (cambia textos para que no estén en caché) → «Generar voces».
+   El estado muestra «Generando voces: 3/10 (2 a la vez)…». Anota el tiempo y compáralo con el anterior.
+   Escucha 3 líneas al azar: cada WAV corresponde a su texto y personaje.
+7. Pulsa «Generar voces» otra vez: debe terminar casi al instante («0 generadas, N reutilizadas»).
+8. Si Loquendo da errores o voces cruzadas en paralelo: define LOQUENDO_AI_TTS_PARALLEL=1, reinicia y repite el paso 6
+   (debe volver al comportamiento de antes). Cuéntame qué pasó.
+9. Escena con voces grabadas: «Generar voces» no debe sintetizar las tomas (siguen «reutilizadas»).
+
+C. Caché de mediciones
+10. Escena larga con música/SFX/vídeo: genera la preview dos veces. La segunda debe empezar a renderizar antes.
+    %LOCALAPPDATA%\LoquendoAI\probe-cache.json existe tras cerrar la app.
+11. Reemplaza un SFX por otro archivo con el MISMO nombre y vuelve a generar la preview: su duración debe ser la nueva.

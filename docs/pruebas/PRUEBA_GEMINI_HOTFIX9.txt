@@ -1,0 +1,8 @@
+PRUEBA GEMINI · v0.9.0-alpha hotfix 9
+
+1. Abre Loquendo AI. En «Configurar IA», selecciona «Gemini (API de Google)», pega tu API key en el campo oculto y pulsa «Consultar modelos». Elige un modelo de Director y otro de visión. Para Gemini 3 selecciona esfuerzo bajo o predeterminado; para 2.5 solo se usa el predeterminado. Pulsa «Usar esta IA».
+2. Crea o abre un proyecto con Bart, un fondo y un render individual catalogados. En «Director IA» escribe: «Bart camina por una calle, se desplaza lentamente hacia la izquierda, mira a cámara y dice: Hoy sí llegué a tiempo. Usa un render individual, no una hoja de sprites. El fondo se desplaza 70 píxeles a la izquierda durante tres segundos.» Genera el borrador, revisa filas y aplica únicamente cuando esté correcto.
+3. En Biblioteca selecciona UNA imagen PNG/JPG/GIF pequeña, pulsa «IA: analizar imágenes seleccionadas» y revisa sus etiquetas. La segunda ejecución con el mismo modelo e imagen debe omitir el análisis ya catalogado.
+4. Pulsa «Configurar IA…», vuelve a Ollama y comprueba que aparecen sus modelos locales. El Director y el análisis deben responder desde el proveedor elegido. Puedes volver a Gemini sin volver a introducir la clave.
+
+Con Gemini se envían la premisa y el catálogo a la API de Google al generar borrador; al analizar imágenes se envían las seleccionadas. No pegues la API key en el prompt ni en este archivo. La app no crea agentes de Google: utiliza tu clave directamente.

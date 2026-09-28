@@ -1,0 +1,33 @@
+PRUEBA · v1.0.0-beta.4 (al abrir un proyecto existente se migra la base a v7: se crea backups\project_…_antes-v6.db)
+
+A. Pruebas automáticas (primero)
+1. dotnet build .\LoquendoAI.sln  → sin errores (ahora incluye tests\LoquendoAI.Tests).
+2. scripts\pruebas.cmd  → «41 correctas, 0 fallidas». Con FFmpeg en el PATH corren también la comparación
+   preview/VEGAS y la exportación de episodio; sin FFmpeg salen como «omitidas».
+   Filtrar: scripts\pruebas.cmd RepositoryTests  (o GeometryTests, DirectorScriptTests, VegasTests…).
+   Si algo falla, pega aquí la salida completa.
+
+B. Base de datos v7
+3. Abre un proyecto de beta.3: se abre normal, en la barra de estado «schema v7», y existe
+   <proyecto>\backups\project_…_antes-v6.db.
+4. Biblioteca: renombra o mueve un archivo de una fuente y reescanea. En beta.3 esto terminaba con
+   «avisos» (UNIQUE constraint failed: asset_fts_map.asset_id) y el recurso no se actualizaba; ahora el
+   escaneo termina sin avisos, el recurso conserva su ID (el guion lo sigue usando) y la búsqueda lo
+   encuentra por el nombre nuevo. Si en beta.3 viste esos avisos, reescanea esas fuentes una vez.
+5. Cambia el personaje de una carpeta en «Reglas» y reescanea: también fallaba igual; ahora no.
+6. Con una biblioteca grande: filtra, busca y abre «Elegir recurso de fila…» mientras corre un escaneo.
+   La ventana no debe congelarse. «Quitar fuente» de una fuente grande tampoco congela la ventana.
+7. Abre el proyecto migrado con la beta.3 (si aún la tienes): debe negarse con «esta versión soporta
+   hasta v5/v6» en vez de abrirlo a medias.
+
+C. Una sola geometría (preview = VEGAS)
+8. Escena con: render a la izquierda con giro=25, prop con x=100 y giro=-15, fondo con ancho=800 alto=600,
+   y otro fondo con giro=10 x=50 y=20. Preview ▶ y exporta a VEGAS (modo Normal y Legacy).
+   En VEGAS cada capa debe quedar donde en la preview (antes: el render girado se iba hasta 141 px,
+   y el fondo 800×600 ocupaba toda la pantalla en VEGAS).
+9. Con giro, el render gira alrededor de su centro también en VEGAS (Pan/Crop → Rotación).
+
+D. Sin cambios visibles (regresión)
+10. Director (prompt), Director IA, episodio, voces grabadas, exportación de episodio: igual que en beta.3.
+    Esta versión movió la lógica del Director a Infrastructure para poder probarla; si algo del
+    Director se comporta distinto, avísame con la línea exacta.

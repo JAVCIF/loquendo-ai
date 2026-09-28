@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LoquendoAI.Core\LoquendoAI.Core.csproj" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+    <EmbeddedResource Include="Composition\VegasTransitionCatalog.json" />
+    <!-- The tests build databases of older schema versions with the historical migrations. -->
+    <InternalsVisibleTo Include="LoquendoAI.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,28 @@
+PRUEBA · v1.1.1 (Editor de efectos y línea de tiempo; sin cambios en proyecto ni base de datos)
+
+A. Compilar y arrancar
+1. dotnet build .\LoquendoAI.sln y abre la app. Si algo fallara, se anota en %LOCALAPPDATA%\LoquendoAI\errores.log:
+   pásame ese archivo.
+
+B. Editor: parámetros de Cámara, Cine, Gesto y Desenfoque
+2. Abre una escena que ya tenga bloques de Cámara, Cine, Gesto y Desenfoque hechos con el Director. Selecciona cada
+   uno: el panel debe mostrar lo mismo que su línea (compáralo con «Copiar escena» o con la columna Contenido).
+3. Cambia algo en cada uno (zoom y duración de la cámara, estilo de las barras, movimientos y ángulo del gesto,
+   estilo del desenfoque) y pulsa «Guardar bloque». La columna Contenido lo refleja; ▶ y «Exportar a VEGAS» también.
+4. Crea bloques nuevos de cada tipo desde el Editor («Nuevo bloque» y elige el Tipo):
+   - Cámara «Encuadrar al personaje» sin personaje → aviso. Con «Plano general» el combo Personaje se desactiva.
+   - Cine con «Personajes elegidos…»: aparece la lista; marca uno o dos (clic para marcar/desmarcar).
+   - Gesto: escribe en Movimientos «rebote, balanceo» (uno tras otro) o «balanceo+rebote» (a la vez). Una palabra
+     que no sea balanceo/rebote/ambos → aviso.
+   - Desenfoque: el Estilo pone el Valor (0.02 / 0.01 / 0); si escribes otro valor pasa a «Personalizado». Prueba
+     también 0,015 con coma.
+5. Revisa que todo se lea bien en tema claro y oscuro.
+
+C. Preview: línea de tiempo
+6. Reproduce una escena y pulsa en cualquier punto de la línea: salta ahí y sigue reproduciendo.
+7. Arrastra la bolita (o pulsa y arrastra en cualquier parte de la línea): el video se mueve con ella; al soltar
+   continúa desde ahí.
+8. Pausa o «■ Detener» y vuelve a pulsar/arrastrar: se ve el fotograma de ese punto; ▶ sigue desde ahí.
+9. Con la línea seleccionada (tras pulsarla), ← / → mueven 1 s y RePág / AvPág 5 s.
+10. Mira la barra en los dos temas: bolita roja, tramo recorrido rojo, fondo de la barra con el color del tema.
+    En Voice Lab, los deslizadores de pitch/velocidad/volumen tienen el mismo estilo.

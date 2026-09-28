@@ -1,0 +1,84 @@
+name: "🐞 Reporte de error"
+description: Algo no funciona como debería.
+labels: ["error"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ¡Gracias por avisar! Revisa antes que no exista un issue igual. **No pegues API keys** ni subas archivos con derechos de autor.
+  - type: input
+    id: version
+    attributes:
+      label: Versión de Loquendo AI
+      description: Aparece arriba a la izquierda en la app (por ejemplo v1.4.2).
+      placeholder: v1.4.2
+    validations:
+      required: true
+  - type: dropdown
+    id: distribution
+    attributes:
+      label: ¿Qué versión usas?
+      options:
+        - Instalador
+        - Portable
+        - Compilada desde el código
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows
+      placeholder: Windows 11 23H2 64 bits
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      multiple: true
+      options:
+        - Biblioteca
+        - Voice Lab / voces TTS
+        - Diálogos
+        - Editor de bloques
+        - Preview (MP4)
+        - Exportación a VEGAS
+        - Director (prompt)
+        - Director IA
+        - Voces grabadas / transcripción
+        - Instalador / portable
+        - Otra
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      description: Lo más pequeño posible. Si es visual, pega el resultado de «Director (prompt) → Copiar escena».
+      placeholder: |
+        1. Escena nueva con un fondo y un render
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Qué esperabas y qué pasó
+    validations:
+      required: true
+  - type: textarea
+    id: engines
+    attributes:
+      label: Voces e IA (si aplica)
+      description: Motores instalados (Loquendo TTS 7, SAPI 5 cuáles, SAPI 4 con BALCON), versión de VEGAS, proveedor y modelo de IA.
+  - type: textarea
+    id: log
+    attributes:
+      label: errores.log
+      description: Final del archivo. Instalada → %LOCALAPPDATA%\LoquendoAI\errores.log · Portable → datos\errores.log
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Capturas
+      description: Arrastra aquí capturas de pantalla o de la preview/VEGAS.

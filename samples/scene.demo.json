@@ -1,0 +1,44 @@
+{
+  "scene": {
+    "index": 3,
+    "title": "Aparece el villano",
+    "durationMs": 12500,
+    "background": "bedroom_night_02",
+    "characters": [
+      {
+        "character": "carlos",
+        "sprite": "angry",
+        "x": 0.22,
+        "y": 0.82,
+        "scale": 1.0,
+        "layer": 10
+      },
+      {
+        "character": "villano",
+        "sprite": "evil_smile",
+        "x": 0.76,
+        "y": 0.82,
+        "scale": 1.05,
+        "layer": 11
+      }
+    ],
+    "dialogue": [
+      {
+        "order": 0,
+        "speaker": "carlos",
+        "text": "¿Qué mierda estás haciendo?"
+      },
+      {
+        "order": 1,
+        "speaker": "villano",
+        "text": "Llegas demasiado tarde."
+      }
+    ],
+    "effects": [
+      {
+        "preset": "dramatic_reveal",
+        "startOffsetMs": 6200
+      }
+    ]
+  }
+}

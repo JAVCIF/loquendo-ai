@@ -1,0 +1,8 @@
+PRUEBA · v0.9.0-alpha hotfix 22 (haz también PRUEBA_HOTFIX21.txt; copia de project.db antes)
+
+1. Voces grabadas: añade 2 WAV. Asigna «Bart» (con voz en Voice Lab) a uno y deja el otro como Narrador.
+   La columna Tipo debe decir Diálogo / Narración. «Voz TTS (opcional)» vacía. Incorpora.
+2. Guion: la fila muestra «Bart» (no el perfil). «Regenerar bloque con TTS» debe decir que la toma no tiene voz propia.
+3. Asigna una voz a la toma (Voces grabadas → Cargar voces de escena → Asignar voz → Incorporar).
+   Ahora la fila muestra «Bart (TTS: …)» y Regenerar pide confirmación con ESA voz. Luego «Restaurar grabación».
+4. Edita el texto de una toma SIN voz propia en el editor y guarda: no debe preguntar nada y la grabación sigue sonando.

@@ -1,0 +1,51 @@
+PRUEBA · v1.0.0-beta.5 (sin cambios en la base de datos respecto a beta.4)
+
+A. Pruebas automáticas
+1. dotnet build .\LoquendoAI.sln y scripts\pruebas.cmd → «48 correctas». Las de cámara: scripts\pruebas.cmd CameraTests
+
+B. Claude en el Director IA
+2. Director IA con un modelo de Claude y tu biblioteca completa → Generar borrador. Ya no debe salir
+   «400: The compiled grammar is too large». En ia-diagnostico.log la línea del director dice «salida tipada compacta».
+3. Si alguna fila sale pendiente con «no es un render de X» o «no es un recurso de tipo …», es la comprobación nueva
+   (antes el esquema lo impedía; ahora lo vigila la app): corrígela con «Elegir recurso de fila…».
+
+C. Cámara (Guion → Director (prompt)). La cámara no consume tiempo: actúa sobre lo que viene después
+   (por eso tras cada [CAMARA] hay un diálogo o una pausa). Cambia Bart y Lisa por dos personajes TUYOS con renders catalogados;
+   el render se elige solo (no hace falta escribir nombres de archivo). Usa tus fondos/música o quita esas líneas.
+
+[FONDO] <un fondo tuyo>
+[MOSTRAR] Bart | izquierda
+[MOSTRAR] Lisa | derecha
+Bart: Oye, ¿viste lo que pasó en la cocina?
+[CAMARA] Lisa | zoom=1.6 | duracion=0 | enfoque=cara
+Lisa: ...no.
+[CAMARA] general | duracion=400
+[PAUSA] 800
+[CAMARA] habla | zoom=1.3 | duracion=250
+Bart: Pues la pizza explotó.
+Lisa: ¿Cómo que explotó?
+Bart: Técnicamente, fue un éxito.
+[CAMARA] centro | zoom=1.2 | duracion=1500
+[PAUSA] 1500
+[CAMARA] Bart | zoom=2 | duracion=800 | enfoque=cara
+Bart: Yo mejor me voy antes de que llegue mamá.
+[OCULTAR] Bart
+Lisa: ¿Bart?
+[CAMARA] general | duracion=0
+
+4. Validar: sin filas rojas. La columna de estado de las cámaras dice «cámara: …».
+5. Preview ▶: golpe seco a la cara de Lisa; vuelta suave; la cámara salta de Bart a Lisa según quién habla;
+   acercamiento lento al centro; acercamiento a Bart y, cuando Bart sale, vuelve sola al plano general.
+6. Exporta a VEGAS (Normal y otra vez Legacy): los eventos llevan keyframes de Pan/Crop (ábrelos: puedes
+   moverlos o cambiar el zoom), cortados solo donde la cámara corta en seco. Debe verse igual que la preview.
+   En Legacy, «medios_normalizados» tiene UN PNG por imagen aunque el evento esté partido.
+7. Prueba la regla de «en pantalla»: añade al principio «[CAMARA] Lisa» antes de su [MOSTRAR] → aviso
+   (irá a ella cuando aparezca). Y «[CAMARA] Homero» sin mostrarlo → error.
+
+D. Director IA con cámara
+8. Genera un borrador con una premisa con un momento dramático («Lisa descubre que Bart se comió su postre»).
+   La IA puede usar 1–4 cámaras («camara» en el borrador). Revisa que vuelva a general tras el momento.
+
+E. Primer plano automático
+9. Una escena SIN [CAMARA] y un [MOSTRAR] con «primer plano»: el acercamiento automático sigue funcionando,
+   y en VEGAS ahora es Pan/Crop (antes venía horneado en el medio normalizado).

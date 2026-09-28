@@ -1,0 +1,29 @@
+.vs/
+.idea/
+.vscode/
+bin/
+obj/
+*.user
+*.suo
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Loquendo AI generated project data
+**/cache/
+**/generated/
+**/exports/
+**/logs/
+*.db-wal
+*.db-shm
+
+# Publicación (scripts\publicar.ps1)
+artifacts/
+
+# Descargados o generados al publicar (no se versionan)
+tools/ffmpeg/
+tools/balcon/*
+!tools/balcon/README.txt
+worker/python/
+worker/python.nuevo/

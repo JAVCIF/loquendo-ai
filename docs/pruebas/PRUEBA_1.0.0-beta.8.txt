@@ -1,0 +1,47 @@
+PRUEBA · v1.0.0-beta.8 (sin cambios en la base de datos respecto a beta.4–beta.7)
+
+A. Pruebas automáticas
+1. dotnet build .\LoquendoAI.sln y scripts\pruebas.cmd → «63 correctas». Solo las de desenfoque: scripts\pruebas.cmd BlurTests
+
+B. Desenfoque (Guion → Director (prompt)). Como la cámara, [DESENFOQUE] no consume tiempo: actúa sobre lo que viene
+   después. Cambia Bart y Lisa por dos personajes TUYOS y usa un fondo tuyo CON DETALLE (en uno liso no se nota).
+
+[FONDO] <un fondo tuyo con detalle>
+[MOSTRAR] Bart | izquierda
+[MOSTRAR] Lisa | derecha
+[DESENFOQUE] fondo | suavizar | duracion=800
+Bart: Lisa, tengo que decirte algo importante.
+[DESENFOQUE] Lisa | ligero | duracion=500
+Bart: Algo que nadie más puede saber.
+[DESENFOQUE] Lisa | quitar | duracion=500
+[DESENFOQUE] Bart | ligero | duracion=500
+Lisa: ¿Qué cosa?
+[DESENFOQUE] todos | suavizar | duracion=1000
+[PAUSA] 1200
+[DESENFOQUE] todos | quitar | duracion=1000
+[GESTO] Bart | balanceo+rebote
+Bart: ¡Que me comí tu postre!
+
+2. Validar: sin filas rojas; el estado de las líneas dice «desenfoque: …».
+3. Preview ▶:
+   - El fondo se desenfoca poco a poco y Bart y Lisa quedan nítidos.
+   - Mientras Bart sigue hablando, Lisa se desenfoca un poco.
+   - Luego Lisa se enfoca y Bart se desenfoca un poco.
+   - Todo se desenfoca fuerte y vuelve a enfocarse entero.
+   - Bart gesticula nítido.
+4. Exporta a VEGAS (Normal y otra vez Legacy). Los eventos llevan «Desenfoque gaussiano» (fondo, Bart, Lisa, según el caso):
+   rangos horizontal y vertical iguales, animados con un keyframe por fotograma mientras cambian; 0,02 en suavizar y
+   0,01 en ligero; 0 donde vuelve a enfocar. Compara con la preview: ¿desenfoca igual de fuerte? (la equivalencia
+   de fuerza entre VEGAS y la preview está calibrada a ojo: si VEGAS desenfoca más o menos, dímelo y la ajusto).
+5. Errores esperados: «[DESENFOQUE] fondo | borroso» (estilo desconocido), «… | valor=0,5» (máximo 0,1),
+   «[DESENFOQUE] Homero» (personaje sin registrar).
+
+C. Combinado con lo anterior
+6. Añade «[CAMARA] Bart | zoom=1.6 | duracion=0» antes de «¡Que me comí tu postre!»: el fondo sigue igual de desenfocado,
+   no más (en VEGAS el desenfoque va después del Pan/Crop).
+7. Añade «[CINE] mostrar | duracion=0» al principio: las barras quedan nítidas aunque todo esté desenfocado
+   (en VEGAS el Desenfoque gaussiano va antes del Cortador de galletas en la cadena de efectos del evento).
+
+D. Director IA
+8. Genera un borrador con una premisa íntima o de recuerdo («Lisa recuerda el día que perdió a su pony»). La IA puede
+   desenfocar el fondo o todo y volver a enfocar al terminar.

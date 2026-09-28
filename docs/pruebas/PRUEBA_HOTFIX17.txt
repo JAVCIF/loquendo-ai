@@ -1,0 +1,30 @@
+PRUEBA · v0.9.0-alpha hotfix 17
+
+0. Compila: `dotnet build` en la raíz. Si falla, copia el error completo.
+
+A. Director IA (el cuelgue)
+1. Abre Ollama. En PowerShell: `ollama ps` (anota si hay algo cargado).
+2. Abre tu proyecto, escena pequeña, Director IA. Premisa corta (2-3 frases) con un personaje con voz.
+   Genera con tu modelo sencillo y luego con el pesado. Haz 3 intentos con cada uno.
+   - Mira el texto de estado: debe ir cambiando (cargando → generando… N tokens).
+   - Nunca debería quedarse más de ~5 min sin mensaje. Si falla, el mensaje debe decir POR QUÉ.
+3. Mientras genera, en PowerShell: `ollama ps`. Anota la columna PROCESSOR (ej. "100% GPU" o "35%/65% CPU/GPU") y CONTEXT.
+4. Prueba Cancelar a mitad de una generación: debe decir «Generación cancelada».
+5. Envíame el archivo %LOCALAPPDATA%\LoquendoAI\ia-diagnostico.log (pega el contenido o adjúntalo).
+   Cada intento deja una línea con tiempos, tokens, contexto, % en GPU y, si falló, la salida parcial.
+
+B. Caché de voces
+1. En una escena con voces ya generadas, genera un borrador IA con el mismo diálogo (o copia la escena) y genera voces.
+   El estado debe indicar voces reutilizadas y no debe tardar como una síntesis completa.
+2. Comprueba que existe la carpeta generated\voices\_cache con WAV dentro.
+
+C. Biblioteca
+1. Copia de seguridad del project.db antes (por si acaso).
+2. Renombra o mueve un render que esté usado en un guion (dentro de la misma fuente) y reescanea.
+   El pie debe decir «1 movidos/renombrados» y el guion debe seguir mostrando ese render.
+3. Pon «Ignorar» en una carpeta que tenga un recurso usado en un guion. Reescanea: el recurso ya no sale en la biblioteca
+   ni en los selectores, pero el bloque del guion lo conserva y la preview sigue funcionando.
+4. Si tienes sprites PNG de paleta (8 bits) con transparencia, tras reescanear ya no deberían salir como «necesita recorte».
+
+D. Preview larga (opcional)
+1. Una escena larga (40+ bloques con fondos/renders/props) debe generar el MP4 sin error de FFmpeg.

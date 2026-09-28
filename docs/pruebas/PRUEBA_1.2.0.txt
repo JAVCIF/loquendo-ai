@@ -1,0 +1,39 @@
+PRUEBA · v1.2.0 (módulo de Diálogos, perfil NPC, detener audio; sin cambios en la base de datos)
+
+A. Compilar y abrir
+1. dotnet build .\LoquendoAI.sln y abre un proyecto. Si algo falla: %LOCALAPPDATA%\LoquendoAI\errores.log.
+2. Voice Lab: en «Perfiles» aparece «NPC» (voz Jorge). Intenta eliminarlo: no deja. Cambia su pitch y guárdalo.
+
+B. Importar
+3. Diálogos → «Formato recomendado…» → «Copiar ejemplo» → «Pegar / escribir texto…» → Importar. Revisa Tipo,
+   Quién habla, Voz, Comentario y los avisos de la columna Estado (pasa el ratón).
+4. Importa un .docx y un .xlsx tuyos (con y sin encabezados). Prueba «Modo análisis» con un texto en formato de
+   guion de cine o de novela.
+5. Cambia «Quién habla» de una fila a un personaje con perfil (la voz pasa a su perfil, ✎ abre Voice Lab), a un
+   nombre nuevo (NPC: elige una voz TTS7 en la celda) y a «Narrador».
+
+C. Audio
+6. ▶ en una fila sin audio: la genera y suena. «Generar audios»: el resto. «▶ Reproducir todo» desde una fila y
+   «■ Detener». Ajusta Pitch/Vel./Vol. de una línea: queda «Cambió · sin audio»; el perfil en Voice Lab no cambia.
+7. «Regenerar selección» con varias líneas.
+
+D. IA
+8. «Prompt maestro…»: marca personajes, escribe otros, la historia y las líneas. «Copiar prompt», pégalo en una IA
+   web y trae la respuesta con «Pegar / escribir texto…».
+9. «Generar diálogos con IA» con un modelo (Ollama/Gemini/Claude). Con la tabla llena prueba Sí (continuar) y No
+   (reemplazar).
+
+E. Exportar a escenas
+10. «Repartir en escenas» (40 líneas): se crean escenas nuevas al final del episodio, cortadas en cada «▬ Escena».
+    En Guion: los bloques son voces grabadas, con su texto, su voz y su audio. Director IA → «Montar voces
+    grabadas» en una de ellas.
+11. «Una escena con todas»: una escena; Director IA → «Montar voces grabadas» → «Generar episodio» la reparte.
+12. Un NPC con nombre nuevo queda como personaje sin perfil en Voice Lab («— (usa NPC)»).
+13. En Guion, edita el texto de un bloque NPC exportado con voz TTS7 propia: el combo Voz muestra «NPC · <voz>» y
+    la conserva.
+
+F. Detener audio
+14. Editor: ▶ de un SFX o música y luego ■. Bloques: «▶ Audio» y ■. Voces grabadas: «▶ Escuchar» y «■ Detener».
+
+G. Todo lo demás
+15. Una escena de antes: preview y exportar a VEGAS igual que siempre.

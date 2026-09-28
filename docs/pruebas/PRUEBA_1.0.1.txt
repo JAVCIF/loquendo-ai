@@ -1,0 +1,40 @@
+PRUEBA · v1.0.1 (sin cambios en la base de datos respecto a beta.4–beta.8)
+
+A. Pruebas automáticas
+1. dotnet build .\LoquendoAI.sln y scripts\pruebas.cmd → «65 correctas».
+
+B. Efectos propios de VEGAS (con BCC instalado)
+2. En VEGAS, con un proyecto que tenga cualquier evento de vídeo: Herramientas > Scripts > Ejecutar script →
+   scripts\vegas\Diagnostico_efectos_14_o_superior.cs. En «efectos_loquendo.txt» debe aparecer «BCC Gaussian Blur»
+   en la lista de parecidos, pero «Desenfoque gaussiano elegido: Desenfoque gaussiano | {Svfx:com.vegascreativesoftware:…}».
+   Lo mismo con el Cortador de galletas.
+3. Repite la prueba de PRUEBA_1.0.0-beta.8.txt (desenfoque) y exporta a VEGAS. Ahora los eventos llevan
+   «Desenfoque gaussiano» (el de VEGAS, no el de BCC) y desenfocan de verdad. Compara la fuerza con la preview.
+
+C. Desenfoque en la preview
+4. En la misma prueba, el desenfoque de la preview es igual en horizontal y en vertical (antes solo de lado).
+
+D. Barras de cine con cruce
+5. Prompt de prueba (cambia los personajes y fondos por los tuyos):
+
+[FONDO] <un fondo tuyo>
+[MOSTRAR] Bart | izquierda
+Bart: Empieza la película.
+[CINE] mostrar | duracion=800
+[TRANSICION] cruce | duracion=1000
+[FONDO] <otro fondo tuyo>
+Bart: Y cambiamos de lugar.
+[CINE] mostrar | estilo=abierto
+[PAUSA] 800
+[CINE] quitar | duracion=600
+[PAUSA] 1000
+
+   Exporta a VEGAS. Comprueba:
+   - El cruce entre los dos fondos es un solo fundido de 1000 ms, igual que en la preview.
+   - Los eventos de fondo no se parten donde entran, cambian o salen las barras.
+   - El Cortador de galletas lleva keyframes de Tamaño (y de Borde en el cambio a barras finas).
+   - Antes de las barras y después de quitarlas, el Tamaño está en 1,0 o en 0,747: no se ven barras.
+
+E. Gesto con corte de cámara
+6. [CAMARA] habla | zoom=1.3 | duracion=0 y [GESTO] habla | balanceo al principio de un diálogo de 3–4 líneas.
+   Exporta a VEGAS. El balanceo se ve igual que en la preview, también cuando la cámara corta en medio del gesto.

@@ -1,0 +1,27 @@
+PRUEBA · v1.4.1 (ocultar renders NPC, arrastrar bloques, Juan SAPI5, Jorge en Diálogos)
+
+A. Ocultar renders sin personaje
+1. Guion → escena: «Mostrar personaje» con un render y Personaje «—» (sin personaje). Añade unos diálogos.
+2. «Ocultar personaje»: en Personaje aparece «NPC · <nombre del render>». Elígelo, guarda y mira la Preview:
+   el render desaparece en ese punto. En la tabla el bloque dice «NPC · <render>».
+3. Vuelve al «Mostrar» del paso 1, asígnale un personaje y guarda. Abre el «Ocultar»: ahora muestra ese personaje
+   (ya no el nombre del recurso) y la Preview sigue ocultándolo.
+4. Dos «Mostrar» del mismo render sin personaje y dos «Ocultar»: desaparecen uno y luego el otro.
+5. Exporta a VEGAS: el render termina donde se oculta.
+
+B. Director
+6. Director (prompt): [MOSTRAR] NPC | <render> | derecha … [OCULTAR] NPC | <render> → validar y aplicar.
+7. «Copiar escena» de esa escena: salen esas mismas líneas.
+8. Director IA → «Prompt maestro…» → pestaña «Enviado en modo historia»: al final aparece la regla RENDERS NPC.
+   Genera un borrador con una premisa que pida un extra (p. ej. «un guardia aparece y se va»); si hay renders sin
+   personaje, la IA los muestra como NPC y los quita con «ocultar_npc».
+
+C. Bloques de escena
+9. Arrastra un bloque a otra posición: la línea roja indica si va arriba o abajo de la fila. Selecciona varios
+   (Ctrl/Shift) y arrástralos juntos: conservan su orden. Arrastra hacia el borde de la tabla: se desplaza sola.
+   Un clic simple sobre una fila de una selección múltiple deja solo esa fila seleccionada.
+
+D. Voces
+10. Voice Lab → «Voces en los selectores…»: Juan de SAPI5 aparece marcado (si no lo tocaste antes).
+11. Diálogos: en una fila NPC la voz dice «TTS7 · Jorge», sin «(voz NPC)», y no aparece dos veces. «Asignar voz NPC»
+    con la lista sin tocar deja Jorge.

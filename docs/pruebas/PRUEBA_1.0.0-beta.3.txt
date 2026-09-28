@@ -1,0 +1,25 @@
+PRUEBA · v1.0.0-beta.3 (al abrir un proyecto existente se migra la base a v6: se crea backups\project_…_antes-v5.db)
+
+A. Configurar IA (todas a la vez)
+1. Abre la app: NO debe salir la ventana de IA (ya tenías configuración). En Director IA, la lista de modelos muestra
+   «modelo · Ollama/Gemini», con tu modelo de antes seleccionado.
+2. «Configurar IA…»: Refrescar modelos (Ollama). Pega la clave de Gemini → «Guardar clave y consultar».
+   Si tienes clave de Claude (platform.claude.com), pégala → «Guardar clave y consultar».
+3. «Modelos en las listas»: desmarca varios, usa Buscar y «Recomendados». Elige predeterminados (Director e imágenes)
+   y niveles de razonamiento/esfuerzo. Guardar.
+4. En Director IA: con un modelo de Ollama no aparece «Esfuerzo»; con gemini-3-* aparece «Razonamiento»;
+   con Claude aparece «Esfuerzo» (Máximo solo en los que lo admiten). Genera un borrador con cada proveedor.
+   ia-diagnostico.log: una línea por llamada (gemini … / claude … / Ollama).
+5. Biblioteca: analiza 2 imágenes con un modelo de Claude o Gemini elegido en «Visión».
+6. Reinicia la app: los predeterminados se respetan; lo elegido en la pestaña era solo para esa sesión.
+
+B. Búsqueda FTS5
+7. Biblioteca → Buscar: «cancion epica» (sin tildes), «bart eno» (inicio de palabras), una palabra que solo esté en la
+   descripción IA o en la expresión. Los más relevantes salen primero.
+8. «Elegir recurso de fila…» en el borrador: la búsqueda del selector se comporta igual.
+9. Reescanea una fuente sin cambios: debe tardar como siempre (el índice no se reescribe).
+
+C. STT
+10. Voces grabadas → modelo «large-v3-turbo», «Nombres como pista» marcado → Transcribir. Con GPU debe ir notablemente
+    más rápido que large-v3. Los nombres de personajes deberían salir bien escritos.
+11. Pasa el ratón por la columna STT: «voz 0,12–2,30 s · dudosas: … · cuda/float16». Incorpora: la toma guarda los tiempos.

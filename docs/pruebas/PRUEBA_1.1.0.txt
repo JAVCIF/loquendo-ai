@@ -1,0 +1,32 @@
+PRUEBA · v1.1.0 (interfaz; sin cambios en proyecto ni base de datos)
+
+A. Compilar y arrancar
+1. dotnet build .\LoquendoAI.sln y abre la app. Si algo del tema fallara al arrancar, se anota en
+   %LOCALAPPDATA%\LoquendoAI\errores.log: pásame ese archivo.
+
+B. Tema
+2. Arriba a la derecha, «Tema»: prueba Claro, Oscuro y Sistema. El cambio es inmediato en la ventana principal y en
+   las que estén abiertas (Configurar IA, Elegir recurso…). En Oscuro la barra de título también se oscurece.
+3. Con «Sistema», cambia el modo de apps en Windows (Configuración > Personalización > Colores): la app lo sigue.
+4. Cierra y vuelve a abrir: recuerda el tema.
+5. Recorre y mira en los dos temas:
+   - las tablas: cabecera roja, filas alternadas, selección roja, ordenar por columna y ensanchar columnas;
+   - las barras de desplazamiento;
+   - los combos, también los editables («Plugin de VEGAS», «Quién habla» en Voces grabadas);
+   - las casillas y el menú Cortar/Copiar/Pegar con clic derecho en un campo;
+   - los tooltips.
+   Dime cualquier cosa que no se lea bien.
+
+C. Guion
+6. Arrastra el divisor vertical entre Episodios/Escenas y los bloques, el que hay entre Episodios y Escenas, y el
+   horizontal entre la tabla de bloques y el panel de abajo.
+7. «▲ Ampliar panel» (junto a «+ Diálogo»): el Director, la Preview o el Editor ocupan toda la pestaña. «▼ Restaurar» vuelve.
+8. Director (prompt) y Director IA: arrastra el divisor entre el prompt y la tabla del borrador.
+9. Cierra la app con la ventana en otro tamaño y los divisores movidos: al abrirla sigue igual.
+
+D. Biblioteca
+10. Arrastra el divisor entre Fuentes y Assets catalogados.
+
+E. Todo lo demás
+11. Crea o abre un proyecto y haz una prueba normal (una escena, preview, exportar a VEGAS): nada del
+    funcionamiento debe haber cambiado.

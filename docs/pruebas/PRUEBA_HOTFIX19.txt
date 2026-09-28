@@ -1,0 +1,9 @@
+PRUEBA · v0.9.0-alpha hotfix 19 (incluye todo lo de hotfix 18: sigue también PRUEBA_HOTFIX18.txt)
+
+1. Renombra un par de WAV de prueba con el nombre del personaje: 01_Bart_hola.wav, 02_Fluttershy_si.wav, 03_toma.wav.
+2. Guion → Voces grabadas → Añadir WAV…: las dos primeras deben llegar con su personaje; la tercera como Narrador.
+3. Selecciona la tercera, escribe en el selector un nombre NUEVO (p. ej. «Twilight») y pulsa «Asignar personaje».
+   Debe crearse sin voz (lo verás en Voice Lab con voz «—») y asignarse a la toma.
+4. Transcribe, corrige, «Incorporar voces a la escena».
+5. Director IA → modo «Montar voces grabadas» → genera. Comprueba que muestra a los que hablan con renders
+   variados y que todos los bloques originales aparecen una sola vez.

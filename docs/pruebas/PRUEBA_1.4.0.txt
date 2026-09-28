@@ -1,0 +1,32 @@
+PRUEBA · v1.4.0 (transcripción incluida, NPC con voz real, más voces, fondos con zoom)
+
+A. Compilar y abrir
+1. dotnet build .\LoquendoAI.sln y abre un proyecto. Arriba debe decir v1.4.0.
+
+B. NPC y voces
+2. Guion → Editor → «+ Diálogo» (o Narración): Personaje = «NPC», Voz = «TTS7 · Jorge (voz NPC)» (no «NPC»).
+   Cambia Personaje a alguien con perfil: la primera opción pasa a «Su perfil · <perfil>». Guarda un diálogo con NPC.
+3. Abre la lista de Voz: además de TTS7 salen «SAPI4 · Juan», «SAPI4 · Antonio» (si BALCON está en tools\balcon)
+   y las «SAPI5 · IVONA…» instaladas. Elige una, guarda y genera la voz de la escena.
+4. Voice Lab → «Voces en los selectores…»: marca/desmarca voces, ▶ para escucharlas, «Buscar voces instaladas»,
+   «Añadir a mano» y «Predeterminadas». Guarda: el Editor y Diálogos muestran la nueva lista.
+5. Diálogos: en una fila NPC, la voz predeterminada es «TTS7 · Jorge (voz NPC)»; elige una SAPI4/SAPI5, genera y
+   exporta a escenas: el bloque conserva esa voz.
+6. Director (prompt) → «Copiar escena» con el diálogo NPC: sale «NPC: texto»; pégalo y valida: no da «Personaje sin registrar».
+
+C. Fondos con zoom
+7. Añade un Fondo, Zoom 150 %, guarda. Añade otro bloque Fondo con la misma imagen → «↳ Seguir desde el anterior» →
+   Animar ΔX = -300, Duración 3000. Añade el personaje con «↳ Seguir desde el anterior» y Animar ΔX = 250 (camina).
+   Opcional: [CAMARA] Personaje zoom 1.8 antes y [CAMARA] general después; [CINE] mostrar.
+8. Preview: el fondo no «salta» al empezar a moverse y no aparecen bordes negros. Exporta a VEGAS y compáralo.
+9. Pon Mover X = 400 en un fondo al 100 %: al guardar, la barra de estado sugiere un zoom.
+10. Director: [FONDO] <tu fondo> | zoom=1.5 | animar x=-300 | animar ms=3000 → valida y aplica.
+
+D. Transcripción local
+11. Desde el código: si worker\python y worker\.venv no existen, Voces grabadas → Transcribir: la app pregunta si
+    instalarla; acepta y mira el progreso en la barra de estado. Prueba «Cancelar» a mitad y vuelve a transcribir.
+12. scripts\publicar.cmd → artifacts\LoquendoAI_v1.4.0_portable\worker\python\python.exe existe. En otro PC sin
+    Python, abre el .exe portable, importa un WAV y transcribe: funciona sin ejecutar nada (el modelo se descarga la
+    primera vez y queda en datos\modelos-stt).
+13. Opcional: scripts\publicar.cmd -Instalador → instala y transcribe igual. scripts\publicar.cmd -SinSTT hace un
+    paquete más pequeño: la app ofrece instalar la transcripción la primera vez.

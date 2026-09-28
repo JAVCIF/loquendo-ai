@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- Icon of the .exe (Explorer, Task Manager, pinned taskbar). The windows get it in ThemeManager. -->
+    <ApplicationIcon>Assets\loquendo-ai.ico</ApplicationIcon>
+    <AssemblyTitle>Loquendo AI</AssemblyTitle>
+    <Product>Loquendo AI</Product>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets\loquendo-ai.ico" />
+    <Resource Include="Assets\loquendo-ai.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LoquendoAI.Core\LoquendoAI.Core.csproj" />
+    <ProjectReference Include="..\LoquendoAI.Infrastructure\LoquendoAI.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,54 @@
+PRUEBA · v1.0.0-beta.7 (sin cambios en la base de datos respecto a beta.4–beta.6)
+
+A. Pruebas automáticas
+1. dotnet build .\LoquendoAI.sln y scripts\pruebas.cmd → «59 correctas». Solo las de gestos: scripts\pruebas.cmd GestureTests
+
+B. Gestos (Guion → Director (prompt)). Como la cámara, [GESTO] no consume tiempo: el gesto empieza donde está la
+   línea, así que ponlo justo ANTES de la frase. Cambia Bart y Lisa por dos personajes TUYOS y usa un fondo tuyo.
+
+[FONDO] <un fondo tuyo>
+[MOSTRAR] Bart | izquierda
+[MOSTRAR] Lisa | derecha
+[GESTO] Bart | balanceo
+Bart: ¡Lisa! ¡Adivina qué!
+[GESTO] Lisa | rebote
+Lisa: ¿Qué pasó?
+[GESTO] Bart | balanceo+rebote | angulo=8 | estirar=12
+Bart: ¡Me gané la lotería!
+[GESTO] Lisa | rebote, balanceo | lado=izquierda
+Lisa: ¿En serio?
+[GESTO] habla | balanceo
+Bart: Bueno, un raspe de mil pesos.
+Lisa: Eso no es la lotería.
+Bart: Para mí sí.
+[GESTO] habla | quitar
+[GESTO] Bart | rebote | estirar=-15 | velocidad=lento
+Lisa: Ay, Bart.
+
+2. Validar: sin filas rojas; el estado de las líneas de gesto dice «gesto: …».
+3. Preview ▶:
+   - Bart (a la izquierda) se inclina hacia el centro y rebota un poco al otro lado; se queda levemente inclinado.
+   - Lisa se estira desde los pies y vuelve.
+   - Bart se inclina y se estira a la vez, más fuerte (8°, 12 %).
+   - Lisa primero se estira y luego se balancea, empezando hacia la izquierda.
+   - En las tres líneas siguientes gesticula quien habla, alternando el lado.
+   - Al final Bart se aplasta (estirar negativo), más despacio.
+   En todos los casos los pies no se mueven.
+4. Exporta a VEGAS (Normal y otra vez Legacy). Abre el Pan/Crop de los eventos de Bart y Lisa:
+   - Hay un keyframe por fotograma mientras dura cada gesto (9 en el balanceo, 4 en el rebote), lineales, con la
+     curva de la preview. El punto de eje está en los pies.
+   - En el rebote el recuadro está deformado y el evento tiene «Mantener relación de aspecto» desactivado: debe
+     aplastar/estirar como en la preview, no alejarse y volver.
+   Compara con la preview: el mismo movimiento, igual de fluido.
+5. Errores esperados: «[GESTO] Homero | balanceo» sin mostrarlo antes → error en la fila. También fallan
+   «[GESTO] Bart | quitar» (quitar solo va con habla) y «[GESTO] Bart | angulo=50» (máximo 20).
+
+C. Combinado con lo anterior
+6. Añade «[CAMARA] Bart | zoom=1.5 | duracion=0» antes de «¡Me gané la lotería!»: el gesto sigue igual dentro del
+   acercamiento (más grande, como todo lo demás) y los pies siguen quietos. Añade «[CINE] mostrar | duracion=0» al principio: las barras no se mueven con
+   el gesto.
+7. Un [MOSTRAR] con «animar x=200 | animar ms=2000» y un [GESTO] mientras se desplaza: se balancea mientras camina.
+
+D. Director IA
+8. Genera un borrador de comedia rápida («Bart y Lisa discuten a gritos por el control remoto»). La IA puede usar
+   «gesto» con un personaje antes de una frase con energía, o «quien habla» para toda la discusión.
