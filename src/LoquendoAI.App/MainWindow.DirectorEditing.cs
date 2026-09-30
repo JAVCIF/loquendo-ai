@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using LoquendoAI.Core.Models;
 
 namespace LoquendoAI.App;
@@ -74,6 +75,50 @@ public partial class MainWindow
         catch (Exception ex) { DirectorStatusText.Text = AiDirectorStatusText.Text = ex.Message; }
     }
 
+    /// <summary>
+    /// Director (prompt), 1.4.4: Supr removes the selected rows from the draft itself (the rows and the blocks behind
+    /// them stay aligned), and the draft must be validated again before it is applied. The table of Director IA does
+    /// not delete rows: that draft is sent whole and adjusted afterwards in the editor or here. In a voices draft the
+    /// original blocks (the recorded WAVs) are not removed here either: that is done in the editor.
+    /// </summary>
+    private void DirectorDraftGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Delete || DirectorDraftGrid.IsReadOnly || e.OriginalSource is TextBox) return;
+        if (DirectorDraftGrid.ItemsSource is not IEnumerable<DirectorDraftRow> source) return;
+        var selected = new HashSet<object>(DirectorDraftGrid.SelectedItems.Cast<object>(), ReferenceEqualityComparer.Instance);
+        if (selected.Count == 0) return;
+        e.Handled = true;
+        var rows = source.ToList();
+        if (rows.Count != _directorDraft.Length)
+        {
+            DirectorStatusText.Text = AiDirectorStatusText.Text = "El borrador no coincide con la tabla. Prepáralo de nuevo.";
+            return;
+        }
+        if (_aiRecordedDraft && rows.Any(x => selected.Contains(x) && x.Parameters == "Bloque original"))
+        {
+            DirectorStatusText.Text = AiDirectorStatusText.Text =
+                "Con voces grabadas, los bloques originales no se quitan del borrador: bórralos o edítalos en el editor después de aplicarlo.";
+            return;
+        }
+        var keptRows = new List<DirectorDraftRow>();
+        var keptBlocks = new List<SceneScriptBlock>();
+        for (var i = 0; i < rows.Count; i++)
+        {
+            if (selected.Contains(rows[i])) continue;
+            keptRows.Add(rows[i] with { Order = keptRows.Count + 1 });
+            keptBlocks.Add(_directorDraft[i] with { OrderIndex = keptBlocks.Count });
+        }
+        var removed = rows.Count - keptRows.Count;
+        _directorDraft = keptBlocks.ToArray();
+        DirectorDraftGrid.ItemsSource = keptRows;
+        if (_aiDraftPrompt is not null) AiDraftGrid.ItemsSource = keptRows;
+        _directorDraftValidated = false;
+        DirectorApplyButton.IsEnabled = AiApplyButton.IsEnabled = false;
+        DirectorStatusText.Text = AiDirectorStatusText.Text = keptRows.Count == 0
+            ? "El borrador quedó vacío."
+            : $"Quitaste {removed} fila(s) del borrador. Pulsa Validar edición antes de aplicarlo.";
+    }
+
     private void DirectorDraftGrid_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
     {
         if (e.Row.Item is not DirectorDraftRow { Instruction: not null })
@@ -113,7 +158,9 @@ public partial class MainWindow
             var current = (await repository.GetSceneScriptBlocksAsync(targetSceneId)).ToArray();
             if (_currentRepository != repository ||
                 (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != targetSceneId ||
-                targetSceneId == sourceSceneId && !current.SequenceEqual(_directorOriginal))
+                // Only the voices draft depends on the exact scene it was made from; a continuation or a replacement
+                // over a changed scene is decided (and confirmed) by «Aplicar» (DraftApplyPolicy, 1.4.4).
+                targetSceneId == sourceSceneId && _aiRecordedDraft && current.Length > 0 && !current.SequenceEqual(_directorOriginal))
                 throw new InvalidOperationException("El guion original cambió. Elige otra escena o copia el borrador para conservarlo.");
             var sources = await repository.GetAssetSourcesAsync();
             var blocks = new List<SceneScriptBlock>();

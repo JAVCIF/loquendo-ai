@@ -1221,7 +1221,7 @@
                                     </Grid>
                                     <GridSplitter Grid.Row="2" Height="6" Margin="0,6" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
                                                   ToolTip="Arrastra para dar más espacio al prompt o a la tabla"/>
-                                    <DataGrid x:Name="DirectorDraftGrid" Grid.Row="3" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="False" BeginningEdit="DirectorDraftGrid_BeginningEdit" RowHeaderWidth="0">
+                                    <DataGrid x:Name="DirectorDraftGrid" Grid.Row="3" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="False" BeginningEdit="DirectorDraftGrid_BeginningEdit" PreviewKeyDown="DirectorDraftGrid_PreviewKeyDown" RowHeaderWidth="0">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="Instrucción (editable)" Binding="{Binding Instruction, UpdateSourceTrigger=PropertyChanged}" Width="320"/>
                                             <DataGridTextColumn Header="#" Binding="{Binding Order}" Width="40" IsReadOnly="True"/>
@@ -1295,7 +1295,7 @@
                                     </Grid>
                                     <GridSplitter Grid.Row="3" Height="6" Margin="0,6" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
                                                   ToolTip="Arrastra para dar más espacio a la premisa o a la tabla"/>
-                                    <DataGrid x:Name="AiDraftGrid" Grid.Row="4" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="False" BeginningEdit="DirectorDraftGrid_BeginningEdit" RowHeaderWidth="0">
+                                    <DataGrid x:Name="AiDraftGrid" Grid.Row="4" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="False" BeginningEdit="DirectorDraftGrid_BeginningEdit" RowHeaderWidth="0">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="Instrucción (editable)" Binding="{Binding Instruction, UpdateSourceTrigger=PropertyChanged}" Width="320"/>
                                             <DataGridTextColumn Header="#" Binding="{Binding Order}" Width="40" IsReadOnly="True"/>

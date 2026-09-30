@@ -155,11 +155,13 @@ public partial class MainWindow
     private async void DirectorApply_Click(object sender, RoutedEventArgs e)
     {
         var repository = _currentRepository;
+        // Every message of «Aplicar» goes to both status bars (Director IA and Director prompt, 1.4.4).
+        void Status(string text) => DirectorStatusText.Text = AiDirectorStatusText.Text = text;
         if (repository is null || _directorSceneId is not Guid sourceSceneId ||
             (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id is not Guid targetSceneId ||
             _directorDraft.Length == 0 || !_directorDraftValidated)
         {
-            DirectorStatusText.Text = "Selecciona una escena y valida el borrador antes de aplicarlo.";
+            Status("Selecciona una escena y valida el borrador antes de aplicarlo.");
             return;
         }
         DirectorApplyButton.IsEnabled = false;
@@ -169,22 +171,30 @@ public partial class MainWindow
             var current = (await repository.GetSceneScriptBlocksAsync(targetSceneId)).ToArray();
             if (_currentRepository != repository || (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != targetSceneId)
             {
-                DirectorStatusText.Text = "La escena cambió durante la aplicación. El borrador sigue disponible.";
+                Status("La escena cambió durante la aplicación. El borrador sigue disponible.");
                 return;
             }
-            if (targetSceneId == sourceSceneId && !current.SequenceEqual(_directorOriginal))
+            // The rules live in DraftApplyPolicy (tested): empty scene → apply; continuation over a changed scene →
+            // say how many blocks are added; «Sustituir» → always ask; voices draft over a changed scene → refuse.
+            var decision = DraftApplyPolicy.Decide(current, _directorOriginal, _directorDraft.Length,
+                targetSceneId == sourceSceneId, _aiRecordedDraft, DirectorReplaceCheck.IsChecked == true,
+                (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Title ?? "");
+            if (decision.Action == DraftApplyAction.Refuse)
             {
-                DirectorStatusText.Text = "El guion original cambió desde que se creó el borrador. Elige otra escena o copia el borrador para conservarlo.";
+                Status(decision.Message);
                 return;
             }
-            if (targetSceneId != sourceSceneId && current.Length > 0 &&
-                (_aiRecordedDraft || DirectorReplaceCheck.IsChecked == true) &&
-                MessageBox.Show(this, $"«{(ScenesList.SelectedItem as SceneScriptRow)?.Scene.Title}» ya tiene {current.Length} bloques. ¿Sustituirlos por el borrador?",
-                    "Sustituir guion de destino", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+            if (decision.Action is DraftApplyAction.ConfirmAppend or DraftApplyAction.ConfirmReplace &&
+                MessageBox.Show(this, decision.Message,
+                    decision.Replace ? "Sustituir el guion" : "Agregar al guion", MessageBoxButton.YesNo,
+                    decision.Replace ? MessageBoxImage.Warning : MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+            {
+                Status("No se aplicó. El borrador sigue disponible.");
                 return;
+            }
             if (_currentRepository != repository || (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != targetSceneId)
                 return;
-            SceneScriptBlock[] keep = _aiRecordedDraft || DirectorReplaceCheck.IsChecked == true ? [] : current;
+            SceneScriptBlock[] keep = decision.Replace ? [] : current;
             if (keep.Length == 0 && targetSceneId == sourceSceneId)
             {
                 var draftIds = _directorDraft.Select(x => x.Id).ToHashSet();
@@ -195,7 +205,11 @@ public partial class MainWindow
                         "Voces grabadas", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
                     return;
             }
-            var combined = keep.Concat(_directorDraft).Select((block, index) => block with
+            // A block of the draft that is still in the scene (a continuation over a changed scene) gets a new id,
+            // so the scene never holds the same id twice.
+            var kept = keep.Select(x => x.Id).ToHashSet();
+            var draft = _directorDraft.Select(block => kept.Contains(block.Id) ? block with { Id = Guid.NewGuid() } : block);
+            var combined = keep.Concat(draft).Select((block, index) => block with
             {
                 Id = targetSceneId == sourceSceneId ? block.Id : Guid.NewGuid(),
                 SceneId = targetSceneId, OrderIndex = index, StartOffsetMs = null
