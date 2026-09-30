@@ -184,7 +184,13 @@ public partial class MainWindow
                 if (parsed.Count != 1)
                 {
                     blocks.Add(_directorDraft[blocks.Count]);
-                    validated.Add(row with { Status = "Una fila contiene una sola instrucción", IsReady = false });
+                    validated.Add(row with
+                    {
+                        Status = parsed.Count > 1 && parsed.All(x => x.Kind == ScriptBlockKind.CharacterHide)
+                            ? "Una fila oculta a un solo personaje: para varios a la vez escríbelo en el prompt y prepáralo de nuevo"
+                            : "Una fila contiene una sola instrucción",
+                        IsReady = false
+                    });
                     continue;
                 }
                 var spec = parsed[0];

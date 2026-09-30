@@ -22,7 +22,8 @@ internal static class DirectorAiGrammar
           Posición es una opción SOLA: izquierda, derecha, centro o auto. No escribas posicion=... .
           Si no hay render compatible para ese personaje, omite [MOSTRAR]; el diálogo sigue siendo posible.
           El render debe ser una imagen de UNA pose; nunca un atlas, miniaturas ni hoja de sprites.
-        - Ocultar personaje: [OCULTAR] <nombre exacto de personaje>
+        - Ocultar personaje: [OCULTAR] <nombre exacto de personaje>. Varios a la vez: [OCULTAR] Bart, Lisa o [OCULTAR] todos;
+          para que salgan uno tras otro, pon [PAUSA] entre dos [OCULTAR].
         - Render sin personaje registrado (extra, NPC): [MOSTRAR] NPC | A7 | derecha, y para quitarlo
           [OCULTAR] NPC | A7 con la MISMA referencia. No le des diálogo, cámara ni gesto.
         - Prop/GIF: [IMAGEN] <referencia del catálogo> | duracion=2000 | transicion=fundido
@@ -144,6 +145,9 @@ internal static class DirectorAiGrammar
             RENDERS NPC: si «Renders por personaje» o el esquema traen «NPC» (extras sin personaje registrado), muéstralos
             con "mostrar" y personaje "NPC" y retíralos con "ocultar_npc" usando EL MISMO render. "ocultar" es solo para
             personajes. Los NPC no hablan con "dialogo" ni son objetivo de cámara, gesto o desenfoque.
+
+            SALIDAS: "ocultar" no consume tiempo. Si varios personajes salen a la vez, pon sus acciones "ocultar" seguidas,
+            SIN "pausa" entre ellas; una pausa entre dos "ocultar" los hace salir uno tras otro (úsala solo si lo buscas).
             """;
         return text + (recorded
             ? """

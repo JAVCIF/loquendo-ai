@@ -72,6 +72,10 @@ public partial class MainWindow
         try
         {
             var original = (await repository.GetSceneScriptBlocksAsync(sceneId)).ToArray();
+            // «[OCULTAR] todos» also hides who is already on screen when the draft is added after the scene (1.4.4).
+            if (DirectorReplaceCheck.IsChecked != true && original.Length > 0)
+                specs = ParseDirectorPrompt(prompt, EpisodePlanning.EndStateOf(original,
+                    id => _characters.FirstOrDefault(x => x.Id == id)?.Name, "").OnScreen.Select(x => x.Character));
             var sources = await repository.GetAssetSourcesAsync();
             var results = new List<DirectorDraftRow>();
             var blocks = new List<SceneScriptBlock>();
@@ -124,7 +128,7 @@ public partial class MainWindow
                 results.Add(new DirectorDraftRow(results.Count + 1, DirectorKindName(spec.Kind),
                     character?.Name ?? (asset is null ? (spec.ResourceQuery.Length > 0 ? spec.ResourceQuery : spec.CharacterName) : asset.DisplayName + DirectorAssetExtension(asset)), spec.Text, spec.Summary,
                     status ?? resourceNote ?? (asset is null ? "Listo" : "Recurso sugerido"), status is null)
-                { Instruction = inputLines[results.Count] });
+                { Instruction = spec.SourceLine.Length > 0 ? spec.SourceLine : inputLines[results.Count] });
             }
 
             if (_currentRepository != repository || (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != sceneId)

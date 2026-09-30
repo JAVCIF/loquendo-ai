@@ -11,6 +11,10 @@ public sealed record DirectorSpec(ScriptBlockKind Kind, string CharacterName, st
     string Position, bool Wait, int PauseMs, string? Error, string FramingPreset = "auto",
     Dictionary<string, string>? Options = null)
 {
+    /// <summary>The instruction this spec came from (one line of the prompt). A group hide
+    /// («[OCULTAR] Bart, Lisa», «[OCULTAR] todos») becomes one spec per character, each with its own line.</summary>
+    public string SourceLine { get; init; } = "";
+
     public string Summary => Kind is ScriptBlockKind.Camera or ScriptBlockKind.Cinema or ScriptBlockKind.Gesture or ScriptBlockKind.Blur
         ? (Kind switch
           {
@@ -31,13 +35,17 @@ public sealed record DirectorSpec(ScriptBlockKind Kind, string CharacterName, st
 /// </summary>
 public static class DirectorScript
 {
-    public static List<DirectorSpec> ParseDirectorPrompt(string prompt)
+    /// <param name="onScreenAtStart">Characters already on screen before the prompt (a continuation of a scene):
+    /// «[OCULTAR] todos» hides them too.</param>
+    public static List<DirectorSpec> ParseDirectorPrompt(string prompt, IEnumerable<string>? onScreenAtStart = null)
     {
         var result = new List<DirectorSpec>();
+        var sources = new List<(int Start, string Line)>();
         foreach (var raw in prompt.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
             var line = raw.Trim();
             if (line.Length == 0 || line.StartsWith('#')) continue;
+            sources.Add((result.Count, line));
             if (line.StartsWith('[') && line.IndexOf(']') is var closing && closing > 1)
             {
                 var command = NormalizeDirectorName(line[1..closing]);
@@ -238,6 +246,82 @@ public static class DirectorScript
             }
             else result.Add(new DirectorSpec(ScriptBlockKind.Comment, "", "", line, "centro", false, 0,
                 "No entendido; usa [FONDO], [MOSTRAR], [SFX] o Personaje: texto"));
+        }
+        for (var s = 0; s < sources.Count; s++)
+        {
+            var end = s + 1 < sources.Count ? sources[s + 1].Start : result.Count;
+            for (var i = sources[s].Start; i < end; i++) result[i] = result[i] with { SourceLine = sources[s].Line };
+        }
+        return ExpandGroupHides(result, onScreenAtStart ?? []);
+    }
+
+    /// <summary>
+    /// «[OCULTAR] Bart, Lisa» and «[OCULTAR] todos» (1.4.4): one hide per character, one after the other with no time
+    /// between them, so they leave at the same moment (hides take no time; a pause goes after the last one). «todos»
+    /// are the characters and NPC renders on screen at that point of the prompt (plus <paramref name="onScreenAtStart"/>).
+    /// «[OCULTAR] Bart | pausa=400 » then «[OCULTAR] Lisa» still staggers them.
+    /// </summary>
+    private static List<DirectorSpec> ExpandGroupHides(List<DirectorSpec> specs, IEnumerable<string> onScreenAtStart)
+    {
+        // On screen, in order of appearance: a character's name, or «NPC» + the render.
+        var onScreen = onScreenAtStart.Where(x => x.Length > 0).Select(x => (Name: x, Render: "")).ToList();
+        static bool Same((string Name, string Render) a, (string Name, string Render) b) =>
+            SameDirectorName(a.Name, b.Name) && (a.Render.Length == 0 && b.Render.Length == 0 || SameDirectorName(a.Render, b.Render));
+        (string, string) Key(DirectorSpec spec) =>
+            (spec.CharacterName, SameDirectorName(spec.CharacterName, "NPC") ? spec.ResourceQuery : "");
+        var result = new List<DirectorSpec>(specs.Count);
+        foreach (var spec in specs)
+        {
+            if (spec.Kind == ScriptBlockKind.CharacterShow && spec.Error is null)
+            {
+                var key = Key(spec);
+                if (!onScreen.Any(x => Same(x, key))) onScreen.Add(key);
+            }
+            if (spec.Kind != ScriptBlockKind.CharacterHide || spec.Error is not null)
+            {
+                result.Add(spec);
+                continue;
+            }
+            var all = SameDirectorName(spec.CharacterName, "todos") || SameDirectorName(spec.CharacterName, "todo") ||
+                SameDirectorName(spec.CharacterName, "todos los personajes");
+            if (!all && !spec.CharacterName.Contains(','))
+            {
+                var key = Key(spec);
+                onScreen.RemoveAll(x => Same(x, key));
+                result.Add(spec);
+                continue;
+            }
+            var targets = all ? onScreen.ToList()
+                : spec.CharacterName.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => (Name: x, Render: "")).ToList();
+            targets = targets.Where((x, i) => !targets.Take(i).Any(y => Same(x, y))).ToList();
+            if (targets.Count == 0)
+            {
+                result.Add(spec with { Error = all ? "No hay personajes en pantalla para ocultar" : "Falta el personaje" });
+                continue;
+            }
+            if (targets.Any(x => SameDirectorName(x.Name, "NPC") && x.Render.Length == 0))
+            {
+                result.Add(spec with { Error = "Para ocultar un NPC escribe [OCULTAR] NPC | recurso (uno por línea)" });
+                continue;
+            }
+            var options = spec.Options is null ? null : new Dictionary<string, string>(spec.Options);
+            options?.Remove("PAUSA");
+            for (var t = 0; t < targets.Count; t++)
+            {
+                var (name, render) = targets[t];
+                var last = t == targets.Count - 1;
+                var npc = render.Length > 0;
+                result.Add(spec with
+                {
+                    CharacterName = npc ? "NPC" : name,
+                    ResourceQuery = npc ? render : "",
+                    PauseMs = last ? spec.PauseMs : 0,
+                    Options = last ? spec.Options : options,
+                    SourceLine = "[OCULTAR] " + (npc ? "NPC | " + render : name) + (last && spec.PauseMs > 0 ? " | pausa=" + spec.PauseMs : "")
+                });
+                onScreen.RemoveAll(x => Same(x, (name, render)));
+            }
         }
         return result;
     }

@@ -165,4 +165,40 @@ internal static class DirectorScriptTests
         Assert.True(AudioDurationEstimate.TooLongForEffect(Audio(".mp3", 7_200_000, AssetKind.SoundEffect)), "SFX de 5 min");
         Assert.True(AudioDurationEstimate.TooShortForMusic(Audio(".mp3", 30_000, AssetKind.Music)), "«música» de 2 s");
     }
+
+    [Test("Ocultar varios (1.4.4): «Bart, Lisa» y «todos» salen a la vez; con pausa entre dos [OCULTAR], uno tras otro")]
+    public static async Task GroupHide()
+    {
+        var specs = DirectorScript.ParseDirectorPrompt("""
+            [MOSTRAR] Bart | A1 | izquierda
+            [MOSTRAR] Lisa | A2 | derecha
+            [MOSTRAR] NPC | A7 | centro
+            [OCULTAR] Bart, Lisa | pausa=300
+            [MOSTRAR] Bart | A3 | izquierda
+            [OCULTAR] todos
+            """);
+        var hides = specs.Where(x => x.Kind == ScriptBlockKind.CharacterHide).ToArray();
+        Assert.Sequence(["Bart", "Lisa", "NPC", "Bart"], hides.Select(x => x.CharacterName), "uno por personaje; «todos» = los que siguen en pantalla, por orden de aparición");
+        Assert.Equal("A7", hides[2].ResourceQuery, "el NPC se oculta por su render");
+        Assert.Sequence([0, 300, 0, 0], hides.Select(x => x.PauseMs), "la pausa va después del último");
+        Assert.Sequence(["[OCULTAR] Bart", "[OCULTAR] Lisa | pausa=300", "[OCULTAR] NPC | A7", "[OCULTAR] Bart"],
+            hides.Select(x => x.SourceLine), "cada fila con su propia instrucción");
+        Assert.True(hides.All(x => x.Error is null), "sin errores");
+        Assert.Equal("[MOSTRAR] Lisa | A2 | derecha", specs[1].SourceLine, "las demás filas conservan su línea");
+
+        var start = DirectorScript.ParseDirectorPrompt("[OCULTAR] todos", ["Homero", "Marge"]);
+        Assert.Sequence(["Homero", "Marge"], start.Select(x => x.CharacterName), "«todos» incluye a quien ya estaba en la escena");
+        Assert.Contains("No hay personajes", DirectorScript.ParseDirectorPrompt("[OCULTAR] todos").Single().Error ?? "", "nadie en pantalla");
+
+        // In the scene: consecutive hides share the instant; a pause between them staggers them.
+        Guid bart = Guid.NewGuid(), lisa = Guid.NewGuid();
+        SceneScriptBlock Block(int order, ScriptBlockKind kind, Guid? who = null, int pause = 0) =>
+            new(Guid.NewGuid(), Guid.Empty, order, kind, who, PauseAfterMs: pause);
+        var together = await SceneComposer.PlanAsync([Block(0, ScriptBlockKind.Pause, pause: 500), Block(1, ScriptBlockKind.CharacterHide, bart),
+            Block(2, ScriptBlockKind.CharacterHide, lisa, 300)], _ => null);
+        Assert.Sequence([500L, 500L], together.Media.Where(x => x.Kind == ScriptBlockKind.CharacterHide).Select(x => x.StartMs), "a la vez");
+        var staggered = await SceneComposer.PlanAsync([Block(0, ScriptBlockKind.Pause, pause: 500), Block(1, ScriptBlockKind.CharacterHide, bart, 400),
+            Block(2, ScriptBlockKind.CharacterHide, lisa)], _ => null);
+        Assert.Sequence([500L, 900L], staggered.Media.Where(x => x.Kind == ScriptBlockKind.CharacterHide).Select(x => x.StartMs), "uno tras otro");
+    }
 }
