@@ -63,7 +63,7 @@ se limpia la caché y se elige el tema claro u oscuro. Debajo hay cinco pestaña
 | --- | --- |
 | **Inicio** | Guía rápida del flujo de trabajo. |
 | **Biblioteca** | Registrar carpetas de recursos (fondos, renders, props, GIF, videos, música, SFX), clasificarlos por reglas de carpeta y etiquetarlos. La IA puede describir imágenes y reconocer música, memes y efectos por su nombre, o escuchando el audio con Gemini. |
-| **Voice Lab** | Personajes y perfiles de voz: motor, voz, pitch, velocidad y volumen, con prueba inmediata. También decide qué voces aparecen en los selectores del resto del programa («Voces en los selectores…»). |
+| **Voice Lab** | Personajes y perfiles de voz: motor, voz, pitch, velocidad y volumen, con prueba inmediata. Al guardar un perfil nuevo ofrece crear el personaje con ese mismo nombre y esa voz (o asignársela a uno que aún no tenga). También decide qué voces aparecen en los selectores del resto del programa («Voces en los selectores…»). |
 | **Diálogos** | Escribir, pegar o importar el guion completo de un episodio desde texto, Word, Excel o CSV. Se asigna la voz de cada línea (los NPC pueden tener cualquier voz), se generan y escuchan los audios, y se exporta todo a escenas. Incluye generación de diálogos con IA y un «prompt maestro» para usar con una IA web. |
 | **Guion** | Episodios, escenas y bloques. Aquí están el **Editor** de bloques, la **Preview**, las **Voces grabadas**, el **Director (prompt)** y el **Director IA**. |
 
@@ -76,7 +76,7 @@ tiempo de cada uno se calcula solo.
 | --- | --- |
 | Diálogo / Narración | Una línea de voz. Usa la voz del personaje, un perfil o cualquier voz TTS de la lista, con ajustes propios. «NPC» es alguien sin personaje registrado. |
 | Fondo | Imagen de fondo que cubre el cuadro, con zoom (hasta 300 %), desplazamiento, giro y animación. Se pueden mover sin bordes negros y continuar un paneo con «↳ Seguir desde el anterior». |
-| Mostrar / Ocultar personaje | Renders (PNG con transparencia) con posición, encuadre automático (cuerpo entero, medio cuerpo, primer plano), animación de movimiento y giro. Un render sin personaje (un extra) también se puede ocultar. |
+| Mostrar / Ocultar personaje | Renders (PNG con transparencia) con posición, encuadre automático (cuerpo entero, medio cuerpo, primer plano), animación de movimiento y giro. «Cambiar dirección» lo hace mirar al otro lado sin moverlo; «Invertir horizontal» lo refleja al lado contrario del cuadro. Un render sin personaje (un extra) también se puede ocultar, y «Todos los que están en escena» los saca a todos a la vez. |
 | Imagen / prop, Video | Props y GIF, videos encima o de fondo, con pantalla verde (croma), volumen y transiciones propias. |
 | SFX, Música | Efectos (pueden esperar a terminar) y música de fondo, con volumen y duración (recorte, bucle o cambio de tempo). |
 | Pausa, Transición | Silencios y transiciones: entrada, salida, cambio o cruce de capas, también con efectos de VEGAS. |
@@ -85,6 +85,18 @@ tiempo de cada uno se calcula solo.
 | Gesto | El clásico balanceo o rebote del render al hablar. |
 | Desenfoque | Desenfoque gaussiano del fondo, de un personaje o de todo. |
 | Comentario | Notas de dirección que no salen en el video. |
+
+**Revisar encuadre** (junto a ▶ en la Preview) busca renders que terminan fuera del cuadro por su animación o su
+posición, personajes mucho más pequeños que los demás y props que casi no se ven:
+
+- «Limitar al cuadro» conserva el movimiento (un empujón, una pelea) y solo lo acorta. «Era una entrada» (en la
+  primera aparición) lo hace entrar desde fuera. Una salida justo antes de ocultarse se respeta.
+- Los tamaños se igualan por la altura visible de cada render, sin contar el borde transparente. Los renders muy
+  anchos (sentados, con muebles) se ajustan con margen, y el porcentaje de cada ajuste se puede cambiar.
+- Cada escena recuerda lo corregido: al volver se puede cambiar de corrección, deshacerla o marcar «es a propósito».
+  Si editas el bloque o cambias el render, se revisa de nuevo.
+- En el Editor, «⤢ Ajustar al cuadro» corrige los campos del bloque abierto antes de guardar, y «Escala %» agranda o
+  achica ancho y alto a la vez.
 
 ### Voces
 
@@ -100,11 +112,19 @@ tiempo de cada uno se calcula solo.
 ### Director e IA
 
 - **Director (prompt)**: escribes instrucciones línea a línea y el programa busca los recursos en tu biblioteca,
-  prepara un borrador revisable y lo aplica a la escena. Ver [el lenguaje](#el-lenguaje-del-director).
+  prepara un borrador revisable y lo aplica a la escena. Las filas del borrador se editan, se cambian de recurso o se
+  quitan (con Supr) y se validan de nuevo. Ver [el lenguaje](#el-lenguaje-del-director).
 - **Director IA**: a partir de una premisa, la IA escribe la escena completa: fondo, música, renders, diálogos, SFX,
   cámara, cine, gestos y transiciones. Solo puede elegir recursos de tu catálogo y todo se valida antes de aplicarlo.
   - Tiene un modo que monta tus **voces grabadas** sin cambiar su audio.
   - Puede generar un **episodio** de varias escenas seguidas, con continuidad entre ellas.
+  - Para editar su borrador línea por línea: «Copiar borrador» y pegarlo en Director (prompt).
+- Cada Director tiene su propio borrador, con sus avisos, su «Aplicar» y «Borrar borrador». Al aplicar:
+  - una escena vacía recibe el borrador directamente;
+  - una continuación se agrega al final (si la escena cambió desde que se preparó, avisa cuántos bloques agrega);
+  - «Sustituir» pregunta siempre antes de reemplazar la escena;
+  - en modo voces grabadas el borrador manda: lo que se quitó de la escena vuelve y lo agregado después va al final;
+  - si quedan renders fuera del cuadro o muy pequeños, lo avisa, y la primera preview ofrece revisarlos.
 - Proveedores: **Ollama** (local y gratuito), **Google Gemini**, **Anthropic Claude** y **OpenAI ChatGPT**. Puedes
   conectar varios a la vez y elegir el modelo en cada lista.
 
@@ -199,6 +219,7 @@ Después:
    [CAMARA] general
    ```
 5. **Preview → ▶**: genera las voces que falten y el MP4, y lo reproduce. La línea de tiempo se puede arrastrar.
+   Si algo queda fuera del cuadro o muy pequeño, **Revisar encuadre** lo corrige.
 6. **Exportar a VEGAS** cuando esté listo (ver [abajo](#exportar-a-vegas-pro)).
 
 Para escribir un episodio largo, empieza por **Diálogos**: pega o importa el guion (`Nombre: texto`, una línea por
@@ -214,7 +235,7 @@ Una instrucción por línea. Las opciones van después de `|`. Las líneas que e
 | Fondo | `[FONDO] ciudad \| zoom=1.5 \| animar x=-300 \| animar ms=3000` |
 | Mostrar render | `[MOSTRAR] Bart \| enojado \| medio cuerpo \| derecha \| animar x=-250 \| animar ms=2400` |
 | Render sin personaje (extra) | `[MOSTRAR] NPC \| guardia \| derecha` … `[OCULTAR] NPC \| guardia` |
-| Ocultar | `[OCULTAR] Bart` |
+| Ocultar | `[OCULTAR] Bart` · `[OCULTAR] Bart, Lisa` · `[OCULTAR] todos` (salen a la vez; con `[PAUSA]` entre dos `[OCULTAR]`, uno tras otro) |
 | Diálogo | `Bart: texto` · `NPC: texto` (voz en off) · `[NARRACION] texto` |
 | Imagen / GIF / video | `[IMAGEN] explosión \| duracion=2000` · `[VIDEO] meme \| capa=sobre \| volumen=60` |
 | Audio | `[MUSICA] tema tranquilo \| volumen=20` · `[SFX] golpe \| esperar=si \| volumen=70` |
@@ -224,8 +245,10 @@ Una instrucción por línea. Las opciones van después de `|`. Las líneas que e
 | Gesto | `[GESTO] Bart \| balanceo` · `[GESTO] habla \| balanceo+rebote` … `[GESTO] habla \| quitar` |
 | Desenfoque | `[DESENFOQUE] fondo \| suavizar \| duracion=600` … `[DESENFOQUE] fondo \| quitar` |
 
-Opciones visuales comunes: `ancho`, `alto`, `x`, `y`, `rotacion`, `voltear h`, `voltear v`, `duracion`,
-`transicion=heredar|corte|fundido|disolvente|flash|barrido|plugin`.
+Opciones visuales comunes: `ancho`, `alto`, `x`, `y`, `rotacion`, `cambiar direccion` (mira al otro lado sin moverse),
+`voltear h` (espejo: pasa al lado contrario), `voltear v`, `duracion`,
+`transicion=heredar|corte|fundido|disolvente|flash|barrido|plugin`. `animar x/y` es cuánto se mueve desde donde
+empieza: para entrar desde fuera, `x=-250 | animar x=250`.
 
 Los recursos se buscan por nombre, carpeta y etiquetas en tu biblioteca. **Copiar escena** hace lo contrario: convierte
 una escena en estas líneas, o en JSON completo, para editarla o pasársela a otra IA.
@@ -260,7 +283,7 @@ en el Director IA, importa tu catálogo para que la IA las use.
 | --- | --- | --- |
 | Configuración, claves cifradas, tema, `errores.log`, selector de voces | `%LOCALAPPDATA%\LoquendoAI\` | `datos\` junto al `.exe` |
 | Modelos de Whisper | caché de Hugging Face del usuario | `datos\modelos-stt\` |
-| Proyecto (base de datos, voces, MP4, exportaciones, copias) | la carpeta del proyecto | la carpeta del proyecto |
+| Proyecto (base de datos, voces, MP4, exportaciones, copias, correcciones de encuadre) | la carpeta del proyecto | la carpeta del proyecto |
 | Tus recursos | donde estén: nunca se copian ni se modifican | igual |
 
 ## Compilar desde el código
