@@ -968,6 +968,10 @@
                                     <TextBox x:Name="VisualWidthBox" Width="55" Height="25" Margin="5,0,10,0" Text="960" VerticalContentAlignment="Center" TextChanged="VisualSizeBox_TextChanged" ToolTip="64–1280 px (fondo: hasta 3840 = zoom 300 %). El recurso mantiene su proporción."/>
                                     <TextBlock Text="Alto máx.:" VerticalAlignment="Center"/>
                                     <TextBox x:Name="VisualHeightBox" Width="55" Height="25" Margin="5,0,10,0" Text="700" VerticalContentAlignment="Center" TextChanged="VisualSizeBox_TextChanged" ToolTip="64–720 px (fondo: hasta 2160 = zoom 300 %). El recurso mantiene su proporción."/>
+                                    <TextBlock Text="Escala %:" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="EditorScaleBox" Width="42" Height="25" Margin="5,0,3,0" Text="100" VerticalContentAlignment="Center"
+                                             ToolTip="Agranda o achica ancho y alto a la vez (140 = 40 % más grande). Pulsa ✓ y guarda el bloque."/>
+                                    <Button Content="✓" Width="26" Height="25" Margin="0,0,10,0" Click="ApplyEditorScale_Click" ToolTip="Aplicar la escala a Ancho y Alto"/>
                                     <TextBlock Text="Mover X:" VerticalAlignment="Center"/>
                                     <TextBox x:Name="VisualOffsetXBox" Width="54" Height="25" Margin="5,0,10,0" Text="0" VerticalContentAlignment="Center" ToolTip="Píxeles; negativo mueve a la izquierda."/>
                                     <TextBlock Text="Mover Y:" VerticalAlignment="Center"/>
@@ -990,6 +994,8 @@
                                     <TextBox x:Name="MotionRotationBox" Width="58" Height="25" Margin="5,0,12,0" Text="0" VerticalContentAlignment="Center" ToolTip="Grados adicionales durante la animación; positivo gira en sentido horario."/>
                                     <TextBlock Text="Duración ms:" VerticalAlignment="Center"/>
                                     <TextBox x:Name="MotionDurationBox" Width="85" Height="25" Margin="5,0,5,0" Text="0" VerticalContentAlignment="Center" ToolTip="0: toda la duración visible de la capa. Al terminar, mantiene su posición final."/>
+                                    <Button Content="⤢ Ajustar al cuadro" Height="25" Padding="8,0" Margin="7,0,0,0" Click="FitToFrame_Click"
+                                            ToolTip="Render o imagen: si termina fuera del cuadro o se ve muy pequeño, corrige los campos (limitar el movimiento o convertirlo en entrada, agrandar). Revisa y guarda."/>
                                     <Button Content="↳ Seguir desde el anterior" Height="25" Padding="8,0" Margin="7,0,0,0" Click="ContinueFromPrevious_Click"
                                             ToolTip="Empieza donde terminó el bloque anterior del mismo fondo, personaje, imagen o video (tamaño/zoom, posición y giro finales). Luego pon el Animar ΔX/ΔY de este tramo: el movimiento continúa sin saltos."/>
                                 </WrapPanel>
@@ -1092,6 +1098,8 @@
                                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
                                     <Button x:Name="ToggleScenePreviewButton" MinWidth="112" Height="29" Padding="10,3" Content="▶ Reproducir" Style="{StaticResource AccentButton}" Click="ToggleScenePreview_Click" ToolTip="Reproduce la escena; actualiza el video si el guion cambió"/>
                                     <Button Margin="6,0,0,0" MinWidth="82" Height="29" Padding="10,3" Content="■ Detener" Click="StopScenePreview_Click"/>
+                                    <Button Margin="6,0,0,0" Height="29" Padding="10,3" Content="Revisar encuadre" Click="ReviewFraming_Click"
+                                            ToolTip="Renders que terminan fuera del cuadro o se ven muy pequeños, con su corrección. Recuerda lo corregido para cambiarlo o deshacerlo."/>
                                 </StackPanel>
                                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                                     <TextBlock Margin="6,0,4,0" VerticalAlignment="Center" Foreground="{DynamicResource Theme.TextMuted}" Text="VEGAS:"/>
@@ -1216,6 +1224,7 @@
                                             <Button x:Name="DirectorPickDraftAssetButton" Margin="7,0,0,0" Padding="10,4" Content="Elegir recurso de fila…" Click="PickDirectorDraftAsset_Click" ToolTip="Selecciona una fila de recurso y elige un archivo catalogado; después valida la edición"/>
                                             <Button Margin="7,0,0,0" Padding="10,4" Content="Copiar escena" Click="CopySceneForDirector_Click" ToolTip="Elige bloque simplificado o JSON completo"/>
                                             <Button Margin="7,0,0,0" Padding="10,4" Content="Copiar borrador" Click="CopyDraftForDirector_Click" ToolTip="Copia el borrador como bloque o JSON completo, incluidos WAV y cambios de la tabla"/>
+                                            <Button Margin="7,0,0,0" Padding="10,4" Content="Borrar borrador" Click="ClearDirectorDraft_Click" ToolTip="Descarta este borrador (el guion de la escena no cambia). Preparar otro también lo reemplaza."/>
                                             <CheckBox x:Name="DirectorReplaceCheck" Margin="15,0,0,0" VerticalAlignment="Center" Content="Sustituir bloques actuales al aplicar"/>
                                         </WrapPanel>
                                     </Grid>
@@ -1288,7 +1297,8 @@
                                             <Button x:Name="AiGenerateButton" Padding="10,4" Content="Generar borrador con IA" Style="{StaticResource AccentButton}" Click="AiGenerateDraft_Click"/>
                                             <Button x:Name="AiEpisodeButton" Margin="6,0,0,0" Padding="10,4" Content="Generar episodio (varias escenas)" Click="AiGenerateEpisode_Click" ToolTip="Historia: la IA divide la premisa en escenas y dirige cada una. Voces grabadas: reparte las tomas de la escena seleccionada en escenas nuevas. Siempre crea escenas nuevas al final del episodio."/>
                                             <Button x:Name="AiPickDraftAssetButton" Margin="6,0,0,0" Padding="10,4" Content="Elegir recurso de fila…" Click="PickDirectorDraftAsset_Click" ToolTip="Sustituye el fondo, render, música o efecto de la fila seleccionada"/>
-                                            <Button Margin="6,0,0,0" Padding="10,4" Content="Copiar borrador" Click="CopyDraftForDirector_Click" ToolTip="Copia el borrador como bloque o JSON completo para conservar voces y ajustes"/>
+                                            <Button Margin="6,0,0,0" Padding="10,4" Content="Copiar borrador" Tag="ia" Click="CopyDraftForDirector_Click" ToolTip="Copia el borrador como bloque o JSON completo para conservar voces y ajustes; pégalo en Director (prompt) para editarlo línea por línea"/>
+                                            <Button Margin="6,0,0,0" Padding="10,4" Content="Borrar borrador" Tag="ia" Click="ClearDirectorDraft_Click" ToolTip="Descarta este borrador (el guion de la escena no cambia). Generar otro también lo reemplaza."/>
                                             <Button x:Name="AiCancelButton" Margin="6,0,0,0" Padding="10,4" Content="Cancelar" IsEnabled="False" Click="AiCancel_Click"/>
                                             <TextBlock VerticalAlignment="Center" Margin="14,0,0,0" Text="Revisa los recursos, los diálogos y el orden antes de aplicar."/>
                                         </WrapPanel>

@@ -65,6 +65,37 @@ public static class SceneComposer
         return open.Count > 0 ? (null, open[^1]) : !anyNpc && owner is Guid shown ? (shown, null) : (null, null);
     }
 
+    /// <summary>
+    /// «Ocultar: todos los que están en escena» of the editor (1.4.4): who is on screen right before the block at
+    /// <paramref name="order"/>, in order of appearance: each character (by id) and each render shown without a character
+    /// (an NPC, by its asset; the same render shown twice counts twice). Hiding them with one «Ocultar» each, one after
+    /// the other and without a pause between them, makes them all leave at the same moment.
+    /// </summary>
+    public static IReadOnlyList<(Guid? CharacterId, Guid? RenderAssetId)> OnScreenBefore(IReadOnlyList<SceneScriptBlock> blocks, int order)
+    {
+        var ordered = blocks.Where(x => x.OrderIndex < order).OrderBy(x => x.OrderIndex).ToArray();
+        var shown = new List<(Guid? Character, Guid? Asset, Guid Block)>();
+        foreach (var block in ordered)
+        {
+            if (block.Kind == ScriptBlockKind.CharacterShow)
+            {
+                if (block.CharacterId is Guid character)
+                {
+                    shown.RemoveAll(x => x.Character == character);
+                    shown.Add((character, null, block.Id));
+                }
+                else if (block.AssetId is Guid asset) shown.Add((null, asset, block.Id));
+            }
+            else if (block.Kind == ScriptBlockKind.CharacterHide)
+            {
+                var (character, renderBlock) = HideTarget(ordered, block);
+                if (character is Guid who) shown.RemoveAll(x => x.Character == who);
+                else if (renderBlock is Guid render) shown.RemoveAll(x => x.Block == render);
+            }
+        }
+        return shown.Select(x => (x.Character, x.Asset)).ToArray();
+    }
+
     /// <summary>Which on-screen render a show/hide event is about: the character, or the render itself when it has
     /// no character (a «Mostrar» block, or the «Mostrar» an «Ocultar» points at). Null: nothing.</summary>
     public static Guid? RenderKey(SceneMedia item) => item.Kind == ScriptBlockKind.CharacterHide

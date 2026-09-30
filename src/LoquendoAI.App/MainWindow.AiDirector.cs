@@ -10,9 +10,6 @@ namespace LoquendoAI.App;
 public partial class MainWindow
 {
     private CancellationTokenSource? _aiRequestCancellation;
-    private bool _aiRecordedDraft;
-    private string? _aiDraftPrompt;
-    private int _aiDraftMode;
 
     private sealed record AiDirectorStep(string Line, string BlockId, string? Note = null, string? Error = null);
 
@@ -539,10 +536,10 @@ public partial class MainWindow
         var recorded = AiDirectorModeCombo.SelectedIndex == 1;
         var repository = _currentRepository;
         var sceneId = scene.Scene.Id;
-        _directorSceneId = null;
-        _directorDraftValidated = false;
-        AiApplyButton.IsEnabled = DirectorApplyButton.IsEnabled = false;
-        AiDraftGrid.ItemsSource = DirectorDraftGrid.ItemsSource = null;
+        // Regenerating replaces Director IA's draft (Director (prompt) keeps its own, 1.4.4).
+        _aiDraft.Clear();
+        AiApplyButton.IsEnabled = false;
+        AiDraftGrid.ItemsSource = null;
         using var cancellation = new CancellationTokenSource();
         _aiRequestCancellation = cancellation;
         AiGenerateButton.IsEnabled = false;
@@ -569,23 +566,17 @@ public partial class MainWindow
             if (_currentRepository != repository || (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != sceneId ||
                 !(await repository.GetSceneScriptBlocksAsync(sceneId)).SequenceEqual(original))
                 throw new OperationCanceledException("La escena cambió; genera otro borrador.");
-            _directorOriginal = original;
-            _directorDraft = draft.ToArray();
-            _directorSceneId = sceneId;
-            _directorPrompt = DirectorPromptBox.Text;
-            _aiRecordedDraft = recorded;
-            _aiDraftPrompt = AiDirectorPromptBox.Text;
-            _aiDraftMode = AiDirectorModeCombo.SelectedIndex;
-            DirectorReplaceCheck.IsChecked = recorded;
-            DirectorReplaceCheck.IsEnabled = !recorded;
-            AiDraftGrid.ItemsSource = DirectorDraftGrid.ItemsSource = rows;
+            _aiDraft.Original = original;
+            _aiDraft.Draft = draft.ToArray();
+            _aiDraft.SceneId = sceneId;
+            _aiDraft.Recorded = recorded;
+            AiDraftGrid.ItemsSource = rows;
             var issues = rows.Count(x => !x.IsReady);
-            _directorDraftValidated = issues == 0 && draft.Count > 0;
-            AiApplyButton.IsEnabled = DirectorApplyButton.IsEnabled = _directorDraftValidated;
+            _aiDraft.Validated = issues == 0 && draft.Count > 0;
+            AiApplyButton.IsEnabled = _aiDraft.Validated;
             AiDirectorStatusText.Text = issues == 0
                 ? $"{draft.Count} bloques listos. Revisa el borrador y aplícalo cuando quieras." 
                 : $"{issues} problema(s) en el borrador. Corrige recursos o perfiles y vuelve a generar.";
-            DirectorStatusText.Text = AiDirectorStatusText.Text;
         }
         catch (OperationCanceledException) { AiDirectorStatusText.Text = "Generación cancelada; el guion permanece intacto."; }
         catch (Exception ex)

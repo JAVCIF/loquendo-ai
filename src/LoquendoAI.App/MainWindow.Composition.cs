@@ -329,6 +329,8 @@ public partial class MainWindow
             return;
         }
         if (_currentRepository is null || ScenesList.SelectedItem is not SceneScriptRow scene || _scriptBlocks.Count == 0) return;
+        // The first preview after the Director left framing warnings asks to review them (1.4.4).
+        if (!await ConfirmFramingBeforePreviewAsync(scene.Scene.Id)) return;
         _previewPreparing = true;
         ToggleScenePreviewButton.IsEnabled = false;
         ToggleScenePreviewButton.Content = "Preparando…";

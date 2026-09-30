@@ -60,6 +60,10 @@ internal static class DirectorAiGrammar
         Para mover una capa DURANTE su aparición: animar x=-1280..1280, animar y=-720..720,
         animar giro=-720..720 y animar ms=0..86400000. Son DELTAS desde x/y/rotacion iniciales;
         animar ms=0 usa toda la duración visible. Ejemplo: [MOSTRAR] Bart | A2 | derecha | animar x=-250 | animar giro=12 | animar ms=2400.
+        El personaje está pegado a su borde: a la izquierda, animar x negativo lo saca del cuadro; a la derecha, el positivo.
+        Mueve hacia el centro (izquierda → positivo, derecha → negativo) y con recorridos cortos (≤ 250 px), salvo que salga
+        de escena y después lo ocultes. Para una ENTRADA desde fuera: x=-250 | animar x=250 (izquierda) o x=250 | animar x=-250.
+        No pongas ancho/alto a los personajes (el encuadre los iguala); si lo haces, que todos queden de tamaño parecido.
         Fondo: bordes=si/no. Video: capa=guion/fondo/sobre, croma=si/no,
         color=RRGGBB, tolerancia=0.01..1, volumen=0..200.
         Música/SFX: volumen=0..200, duracion=<ms>, modo audio=loop/tempo; SFX también esperar=si/no.
@@ -88,6 +92,9 @@ internal static class DirectorAiGrammar
         - Si piden música ambiental, usa solo una pista identificada como ambiente; si no hay, omite la música.
         - Valores neutros cuando no hagan falta: transicion "heredar", encuadre "auto", animar_x/animar_y/animar_ms 0,
           duracion_ms 0. animar_x/animar_y desplazan la capa mientras aparece (px) durante animar_ms.
+        - ANIMAR sin salirse del cuadro: el personaje empieza pegado a su borde. En "izquierda", animar_x NEGATIVO lo saca
+          del cuadro; en "derecha", el POSITIVO. Mueve hacia el centro (izquierda → positivo, derecha → negativo), con
+          recorridos cortos (hasta 250). Solo hacia fuera si sale de escena: entonces "ocultar" justo después.
         - "transicion" como acción separa momentos o escenas; vegas y capas solo importan con estilo "cruce".
         - Las transiciones T1, T2… son efectos de VEGAS para 1 a 3 momentos clave (cambio de lugar, entrada sorpresa,
           remate), elegidas por su nombre: acción "transicion" con estilo "cruce" y vegas=Tn, seguida del nuevo fondo o

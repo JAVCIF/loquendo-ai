@@ -254,12 +254,34 @@ public partial class MainWindow
         if (!TryBuildVoiceProfile(out var profile, requireSavedName: true))
             return;
 
+        var isNew = _editingVoiceProfileId is null;
         try
         {
             await _currentRepository.UpsertVoiceProfileAsync(profile!);
             _editingVoiceProfileId = profile!.Id;
-            await RefreshVoiceLabAsync(profile.Id);
-            VoiceLabStatusText.Text = $"Perfil '{profile.Name}' guardado.";
+            // A new profile named like a character (1.4.4): offer to create that character with this voice, or to give it
+            // to a character of that name that has no voice yet. Saves the «perfil Bart → personaje Bart → asignar» clicks.
+            var same = _characters.FirstOrDefault(x => x.Name.Equals(profile.Name, StringComparison.CurrentCultureIgnoreCase));
+            Guid? selectCharacter = null;
+            if (isNew && same is null && MessageBox.Show(this,
+                    $"¿Crear también el personaje «{profile.Name}» con este perfil como su voz?",
+                    "Voice Lab", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes) == MessageBoxResult.Yes)
+            {
+                var character = new CharacterDefinition(Guid.NewGuid(), profile.Name, profile.Id);
+                await _currentRepository.UpsertCharacterAsync(character);
+                selectCharacter = character.Id;
+            }
+            else if (isNew && same is { DefaultVoiceProfileId: null } && MessageBox.Show(this,
+                    $"El personaje «{same.Name}» todavía no tiene voz. ¿Asignarle este perfil?",
+                    "Voice Lab", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes) == MessageBoxResult.Yes)
+            {
+                await _currentRepository.UpsertCharacterAsync(same with { DefaultVoiceProfileId = profile.Id });
+                selectCharacter = same.Id;
+            }
+            await RefreshVoiceLabAsync(profile.Id, selectCharacter);
+            VoiceLabStatusText.Text = selectCharacter is null
+                ? $"Perfil '{profile.Name}' guardado."
+                : $"Perfil '{profile.Name}' guardado y asignado al personaje «{profile.Name}».";
         }
         catch (Exception ex)
         {

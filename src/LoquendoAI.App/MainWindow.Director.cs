@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Controls;
 using LoquendoAI.Core.Models;
 using LoquendoAI.Infrastructure.Composition;
 
@@ -10,38 +11,80 @@ namespace LoquendoAI.App;
 
 public partial class MainWindow
 {
-    private Guid? _directorSceneId;
-    private string? _directorPrompt;
-    private SceneScriptBlock[] _directorOriginal = [];
-    private SceneScriptBlock[] _directorDraft = [];
-    private bool _directorDraftValidated;
+    /// <summary>
+    /// A Director draft. Since 1.4.4 Director IA and Director (prompt) each keep their own: their tables, errors and
+    /// «Aplicar» never mix. An AI draft goes to Director (prompt) with «Copiar borrador» and pasting it there.
+    /// </summary>
+    private sealed class DirectorDraftSession(bool ai)
+    {
+        public bool Ai { get; } = ai;
+        /// <summary>Scene the draft was made for; null once applied (it is not applied twice) or when there is none.</summary>
+        public Guid? SceneId { get; set; }
+        /// <summary>The scene as it was when the draft was made.</summary>
+        public SceneScriptBlock[] Original { get; set; } = [];
+        public SceneScriptBlock[] Draft { get; set; } = [];
+        public bool Validated { get; set; }
+        /// <summary>A voices draft (Director IA, «Voces grabadas»): the whole scene, recorded WAVs included.</summary>
+        public bool Recorded { get; set; }
+
+        public void Clear()
+        {
+            SceneId = null;
+            Original = [];
+            Draft = [];
+            Validated = false;
+            Recorded = false;
+        }
+    }
+
+    private readonly DirectorDraftSession _promptDraft = new(false);
+    private readonly DirectorDraftSession _aiDraft = new(true);
+
+    private DataGrid DraftGrid(DirectorDraftSession session) => session.Ai ? AiDraftGrid : DirectorDraftGrid;
+    private Button DraftApplyButton(DirectorDraftSession session) => session.Ai ? AiApplyButton : DirectorApplyButton;
+    private TextBlock DraftStatus(DirectorDraftSession session) => session.Ai ? AiDirectorStatusText : DirectorStatusText;
+
+    /// <summary>The draft a button, table or «Copiar/Borrar borrador» belongs to (Tag="ia" on Director IA's own).</summary>
+    private DirectorDraftSession DraftSessionOf(object sender) =>
+        ReferenceEquals(sender, AiApplyButton) || ReferenceEquals(sender, AiValidateButton) ||
+        ReferenceEquals(sender, AiPickDraftAssetButton) || ReferenceEquals(sender, AiDraftGrid) ||
+        (sender as FrameworkElement)?.Tag as string == "ia" ? _aiDraft : _promptDraft;
 
     private void UpdateDirectorDraftTarget(bool updateStatus = true)
     {
         if (DirectorApplyButton is null || AiApplyButton is null) return;
         var selected = (ScenesList.SelectedItem as SceneScriptRow)?.Scene;
-        var ready = _currentRepository is not null && selected is not null &&
-            _directorSceneId.HasValue && _directorDraft.Length > 0 && _directorDraftValidated;
-        DirectorApplyButton.IsEnabled = ready;
-        AiApplyButton.IsEnabled = ready && _aiDraftPrompt is not null;
-        if (updateStatus && _directorSceneId is not null && selected is not null && _directorDraftValidated)
+        foreach (var session in new[] { _promptDraft, _aiDraft })
         {
-            var message = selected.Id == _directorSceneId
-                ? $"Borrador listo para «{selected.Title}». Puedes aplicarlo aquí."
-                : $"Borrador conservado. Se aplicará a «{selected.Title}»; la escena original no cambia.";
-            DirectorStatusText.Text = message;
-            if (_aiDraftPrompt is not null) AiDirectorStatusText.Text = message;
+            var ready = _currentRepository is not null && selected is not null &&
+                session.SceneId.HasValue && session.Draft.Length > 0 && session.Validated;
+            DraftApplyButton(session).IsEnabled = ready;
+            if (updateStatus && ready)
+                DraftStatus(session).Text = selected!.Id == session.SceneId
+                    ? $"Borrador listo para «{selected.Title}». Puedes aplicarlo aquí."
+                    : $"Borrador conservado. Se aplicará a «{selected.Title}»; la escena original no cambia.";
         }
+    }
+
+    /// <summary>«Borrar borrador» (1.4.4): the user decides when a draft is no longer needed (regenerating in Director IA
+    /// or preparing another one in Director (prompt) also replaces it).</summary>
+    private void ClearDirectorDraft_Click(object sender, RoutedEventArgs e)
+    {
+        var session = DraftSessionOf(sender);
+        var grid = DraftGrid(session);
+        if (session.Draft.Length == 0 && grid.ItemsSource is null) return;
+        if (MessageBox.Show(this, "¿Borrar este borrador? El guion de la escena no cambia.", "Borrar borrador",
+                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
+        session.Clear();
+        grid.ItemsSource = null;
+        DraftApplyButton(session).IsEnabled = false;
+        DraftStatus(session).Text = session.Ai
+            ? "Borrador borrado. Escribe la premisa y genera otro cuando quieras."
+            : "Borrador borrado. Escribe o pega un prompt y prepara otro cuando quieras.";
     }
 
     private async void DirectorDraft_Click(object sender, RoutedEventArgs e)
     {
-        if (_aiRequestCancellation is not null) return;
-        _aiRecordedDraft = false;
-        _aiDraftPrompt = null;
-        AiApplyButton.IsEnabled = false;
-        AiDraftGrid.ItemsSource = null;
-        DirectorReplaceCheck.IsEnabled = true;
         if (_currentRepository is null || ScenesList.SelectedItem is not SceneScriptRow selectedScene)
         {
             DirectorStatusText.Text = "Selecciona un proyecto y una escena.";
@@ -57,10 +100,8 @@ public partial class MainWindow
         }
         var specs = ParseDirectorPrompt(prompt);
         DirectorApplyButton.IsEnabled = false;
-        _directorSceneId = null;
-        _directorDraftValidated = false;
+        _promptDraft.Clear();
         DirectorDraftGrid.ItemsSource = null;
-        AiDraftGrid.ItemsSource = null;
         if (specs.Count == 0)
         {
             DirectorStatusText.Text = "Escribe al menos una instrucción, por ejemplo [FONDO] habitación o Bart: Hola.";
@@ -136,21 +177,20 @@ public partial class MainWindow
                 DirectorStatusText.Text = "La escena cambió. Prepara el borrador de nuevo.";
                 return;
             }
-            _directorSceneId = sceneId;
-            _directorPrompt = prompt;
-            _directorOriginal = original;
-            _directorDraft = blocks.ToArray();
+            _promptDraft.SceneId = sceneId;
+            _promptDraft.Original = original;
+            _promptDraft.Draft = blocks.ToArray();
             DirectorDraftGrid.ItemsSource = results;
             var issues = results.Count(x => !x.IsReady);
-            _directorDraftValidated = issues == 0 && blocks.Count > 0;
-            DirectorApplyButton.IsEnabled = _directorDraftValidated;
+            _promptDraft.Validated = issues == 0 && blocks.Count > 0;
+            DirectorApplyButton.IsEnabled = _promptDraft.Validated;
             DirectorStatusText.Text = issues == 0
                 ? $"{blocks.Count} bloques preparados. Revisa el borrador y aplica cuando te sirva."
                 : $"{issues} elemento(s) pendientes. Ajusta el prompt o cataloga los recursos y vuelve a prepararlo.";
         }
         catch (Exception ex)
         {
-            _directorSceneId = null;
+            _promptDraft.SceneId = null;
             ShowError(ex);
         }
         finally { DirectorDraftButton.IsEnabled = true; }
@@ -159,17 +199,20 @@ public partial class MainWindow
     private async void DirectorApply_Click(object sender, RoutedEventArgs e)
     {
         var repository = _currentRepository;
-        // Every message of «Aplicar» goes to both status bars (Director IA and Director prompt, 1.4.4).
-        void Status(string text) => DirectorStatusText.Text = AiDirectorStatusText.Text = text;
-        if (repository is null || _directorSceneId is not Guid sourceSceneId ||
+        var session = DraftSessionOf(sender);
+        // Every message of «Aplicar» is shown in the tab of that draft (each Director keeps its own, 1.4.4).
+        void Status(string text) => DraftStatus(session).Text = text;
+        if (repository is null || session.SceneId is not Guid sourceSceneId ||
             (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id is not Guid targetSceneId ||
-            _directorDraft.Length == 0 || !_directorDraftValidated)
+            session.Draft.Length == 0 || !session.Validated)
         {
-            Status("Selecciona una escena y valida el borrador antes de aplicarlo.");
+            Status(session.Draft.Length > 0 && session.SceneId is null
+                ? "Este borrador ya se aplicó. Para usarlo otra vez, cópialo y pégalo en Director (prompt), o genera otro."
+                : "Selecciona una escena y valida el borrador antes de aplicarlo.");
             return;
         }
-        DirectorApplyButton.IsEnabled = false;
-        AiApplyButton.IsEnabled = false;
+        var draftBlocks = session.Draft;
+        DraftApplyButton(session).IsEnabled = false;
         try
         {
             var current = (await repository.GetSceneScriptBlocksAsync(targetSceneId)).ToArray();
@@ -178,11 +221,12 @@ public partial class MainWindow
                 Status("La escena cambió durante la aplicación. El borrador sigue disponible.");
                 return;
             }
-            // The rules live in DraftApplyPolicy (tested): empty scene → apply; continuation over a changed scene →
-            // say how many blocks are added; «Sustituir» → always ask; voices draft over a changed scene → refuse.
-            var decision = DraftApplyPolicy.Decide(current, _directorOriginal, _directorDraft.Length,
-                targetSceneId == sourceSceneId, _aiRecordedDraft, DirectorReplaceCheck.IsChecked == true,
-                (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Title ?? "");
+            // The rules live in DraftApplyPolicy (tested): empty scene → apply; continuation over a changed scene → say
+            // how many blocks are added; «Sustituir» → always ask; voices draft → it is the law (what was deleted since
+            // comes back, what was added since goes after it). «Sustituir» is Director (prompt)'s own checkbox.
+            var decision = DraftApplyPolicy.Decide(current, session.Original, draftBlocks,
+                targetSceneId == sourceSceneId, session.Recorded, !session.Ai && DirectorReplaceCheck.IsChecked == true,
+                (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Title ?? "", IsRecordedTake);
             if (decision.Action == DraftApplyAction.Refuse)
             {
                 Status(decision.Message);
@@ -198,36 +242,30 @@ public partial class MainWindow
             }
             if (_currentRepository != repository || (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != targetSceneId)
                 return;
-            SceneScriptBlock[] keep = decision.Replace ? [] : current;
-            if (keep.Length == 0 && targetSceneId == sourceSceneId)
+            if (decision.LostTakes > 0 && MessageBox.Show(this,
+                    $"Aplicar el borrador quitará {decision.LostTakes} voz(es) grabada(s) de esta escena. Los WAV siguen en el proyecto, " +
+                    "pero la escena dejará de usarlos. ¿Continuar?",
+                    "Voces grabadas", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
             {
-                var draftIds = _directorDraft.Select(x => x.Id).ToHashSet();
-                var lostTakes = current.Count(x => IsRecordedTake(x) && !draftIds.Contains(x.Id));
-                if (lostTakes > 0 && MessageBox.Show(this,
-                        $"Sustituir los bloques quitará {lostTakes} voz(es) grabada(s) de esta escena. Los WAV siguen en el proyecto, " +
-                        "pero la escena dejará de usarlos. ¿Continuar?",
-                        "Voces grabadas", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes)
-                    return;
+                Status("No se aplicó. El borrador sigue disponible.");
+                return;
             }
-            // A block of the draft that is still in the scene (a continuation over a changed scene) gets a new id,
-            // so the scene never holds the same id twice.
-            var kept = keep.Select(x => x.Id).ToHashSet();
-            var draft = _directorDraft.Select(block => kept.Contains(block.Id) ? block with { Id = Guid.NewGuid() } : block);
-            var combined = keep.Concat(draft).Select((block, index) => block with
+            // The same block twice (a continuation over a scene that still holds some of its blocks) gets a new id;
+            // another scene always gets new ids.
+            var seen = new HashSet<Guid>();
+            var combined = decision.Blocks.Select((block, index) => block with
             {
-                Id = targetSceneId == sourceSceneId ? block.Id : Guid.NewGuid(),
+                Id = targetSceneId == sourceSceneId && seen.Add(block.Id) ? block.Id : Guid.NewGuid(),
                 SceneId = targetSceneId, OrderIndex = index, StartOffsetMs = null
             }).ToArray();
             await repository.ReplaceSceneScriptBlocksAsync(targetSceneId, combined);
-            _directorSceneId = null;
-            _directorDraftValidated = false;
-            _aiDraftPrompt = null;
-            _aiRecordedDraft = false;
-            DirectorReplaceCheck.IsEnabled = true;
+            // The draft stays in its table (it can still be copied), but it is not applied twice.
+            session.SceneId = null;
+            session.Validated = false;
             await LoadBlocksAsync(targetSceneId);
             await RefreshSceneTimingAsync(_scriptBlocks);
-            DirectorStatusText.Text = $"{_directorDraft.Length} bloques incorporados. Pulsa ▶ en Preview de escena para generar el MP4.";
-            AiDirectorStatusText.Text = DirectorStatusText.Text;
+            Status($"{draftBlocks.Length} bloques incorporados. Pulsa ▶ en Preview de escena para generar el MP4.");
+            await ReportFramingAfterApplyAsync(session);
         }
         catch (Exception ex) { ShowError(ex); }
         finally { UpdateDirectorDraftTarget(updateStatus: false); }

@@ -1,3 +1,32 @@
+## v1.4.4 — Director más seguro al aplicar, borradores separados, ocultar varios a la vez y revisión de encuadre
+- **«Aplicar al guion» con reglas claras** (probadas una por una):
+  - **Escena vacía**: el borrador la llena directamente, en cualquier modo.
+  - **Escena sin cambios**: como siempre.
+  - **Continuación** (modo historia, o prompt sin «Sustituir») sobre una escena que cambió: avisa «Se agregarán X bloques al final» y pregunta.
+  - **«Sustituir»** marcado: siempre pregunta antes («¿Seguro? Se perderá la escena actual…»).
+  - **Voces grabadas**: el borrador manda. Si la escena cambió desde que se generó, lo que quitaste vuelve (el borrador se hizo con esas líneas y los WAV siguen en disco) y lo que agregaste a mano va al final; antes de aplicar lo resume y pregunta.
+  - **Otra escena**: si está vacía se llena; si no, avisa cuánto agrega o pregunta antes de sustituir.
+  - Si al aplicar se dejarían de usar voces grabadas, sigue avisando.
+  - Los avisos y errores se ven siempre en la pestaña del borrador (antes algunos solo salían en Director (prompt) y parecía que «no hacía nada»).
+- **Borradores independientes**: Director IA y Director (prompt) tienen cada uno su borrador, su tabla, sus avisos y su «Aplicar». Para editar línea por línea un borrador de la IA: «Copiar borrador» y pegarlo en Director (prompt).
+- **«Borrar borrador»** en las dos pestañas (el guion de la escena no cambia). Regenerar o preparar otro también lo reemplaza.
+- **Borrar filas del borrador**: en Director (prompt) con Supr, y hay que volver a validar; en Director IA no. En un borrador de voces, los bloques originales no se quitan ahí: se editan en el editor de la escena.
+- **Ocultar varios a la vez**:
+  - Director: `[OCULTAR] Bart, Lisa` o `[OCULTAR] todos` (los que siguen en pantalla, NPC incluidos). Salen en el mismo instante; con `[PAUSA]` entre dos `[OCULTAR]` salen uno tras otro.
+  - Editor: «Ocultar personaje» → «Todos los que están en escena (a la vez)» agrega un Ocultar por cada uno, seguidos.
+  - La IA sabe que una pausa entre dos «ocultar» los escalona.
+- **Revisar encuadre** (botón junto a ▶ Reproducir):
+  - Detecta renders que terminan (o quedan) fuera del cuadro, personajes mucho más pequeños que los demás y props diminutos, con la misma geometría que la preview y VEGAS y la parte visible de cada imagen.
+  - **Fuera del cuadro**: «Limitar al cuadro» conserva la dirección del movimiento (un empujón, una pelea) y solo lo acorta; «Era una entrada» (solo en la primera aparición) hace que entre desde fuera. Una salida justo antes de ocultarse no se toca.
+  - **Tamaños**: todos se igualan por la altura visible (los ponies también son personas); los renders muy anchos (sentados, con muebles) con un ajuste prudente. El porcentaje de cada ajuste se puede cambiar antes de aplicarlo.
+  - **Memoria por escena**: cada corrección se recuerda con los valores originales; al volver a revisar se puede cambiar de «Limitar» a «Era una entrada», deshacer o marcar «es a propósito». Si cambias el bloque a mano (u otro render), se revisa de nuevo.
+  - Tras «Aplicar» del Director, avisa cuántos problemas hay y el primer ▶ de esa escena pregunta si revisarlos antes de generar la preview.
+  - Editor: **«⤢ Ajustar al cuadro»** corrige los campos del bloque abierto (se ve antes de guardar; pregunta si era una entrada) y **«Escala %»** agranda o achica ancho y alto a la vez.
+  - La guía de la IA explica hacia dónde animar sin salirse (hacia el centro, recorridos cortos, entradas desde fuera) y que no dé tamaños distintos a los personajes.
+- **Voice Lab**: al guardar un perfil nuevo, ofrece crear el personaje con ese nombre y esa voz (o asignársela a un personaje de ese nombre que aún no tenga voz).
+- **Pruebas**: 7 nuevas o ampliadas (reglas de «Aplicar», voces con escena cambiada, ocultar varios y quién está en escena, cuatro de encuadre con su memoria).
+  - Pendiente en Windows: compilar la app y probar los borradores separados, «Borrar borrador», la ventana «Revisar encuadre», «Ajustar al cuadro», «Escala %» y el aviso de Voice Lab.
+
 ## v1.4.3 — «Cambiar dirección», invertir sin saltos en VEGAS y copiar el borrador aplicado
 - **Nuevo «Cambiar dirección»** (Fondo, render, imagen y video, junto a «Invertir horizontal»): el render mira hacia el otro lado **sin moverse**; la imagen se voltea sobre su propio centro. Se guarda con el bloque, «Seguir desde el anterior» lo hereda y «Copiar escena» lo escribe.
 - **«Invertir horizontal» es un espejo de la capa en el cuadro**: pasa al lado contrario (izquierda ↔ derecha, también el carril automático), con el desplazamiento X, el giro y la animación horizontal reflejados, y mira hacia el otro lado. Ahora la preview y VEGAS hacen lo mismo. Con las dos casillas a la vez, cambia de lado y sigue mirando hacia donde miraba.

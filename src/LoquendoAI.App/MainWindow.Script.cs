@@ -203,6 +203,9 @@ public partial class MainWindow
         _characterChoicesBlockId = _editingScriptBlockId;
         _characterChoicesBlockCount = _scriptBlocks.Count;
         return [new CharacterChoice(null, IsSpeechBlock(kind) ? NpcCharacterLabel : "—"),
+            .. (_characterChoicesForHide
+                ? new[] { new CharacterChoice(null, "Todos los que están en escena (a la vez)", AllOnScreen: true) }
+                : Array.Empty<CharacterChoice>()),
             .. _characters.OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase).Select(x => new CharacterChoice(x.Id, x.Name)),
             .. _characterChoicesForHide ? NpcRenderChoices() : []];
     }
@@ -1130,7 +1133,8 @@ public partial class MainWindow
             ScriptBlockKind.CharacterShow => "Mostrar: posición inicial y animación en X/Y/giro; permanece hasta ocultarlo, sustituirlo o agotar su duración.",
             ScriptBlockKind.Image => "Imagen / prop: posición inicial y animación en X/Y/giro; permanece hasta otra imagen o agotar su duración.",
             ScriptBlockKind.CharacterHide => "Ocultar personaje: elige el personaje o un render mostrado sin personaje («NPC · recurso»). " +
-                "Si luego ese render recibe personaje, este bloque oculta al personaje.",
+                "Si luego ese render recibe personaje, este bloque oculta al personaje. «Todos los que están en escena» agrega un " +
+                "Ocultar por cada uno, seguidos: salen a la vez (una pausa entre dos Ocultar los hace salir uno tras otro).",
             ScriptBlockKind.SoundEffect => "SFX: duración opcional; recorta/repite o ajusta velocidad sin cambiar el tono. Esperar desplaza el bloque siguiente.",
             ScriptBlockKind.Music => "Música: duración opcional; si queda vacía, suena hasta el final de la escena al 25 %.",
             ScriptBlockKind.Video => "Video: tamaño máximo y desplazamiento conservan la proporción; cambiar dirección voltea la imagen en su sitio; invertir horizontal la refleja al otro lado del cuadro. Fondo fijo llena el cuadro.",
@@ -1160,6 +1164,11 @@ public partial class MainWindow
         var kind = typeChoice.Kind;
         var characterId = (ScriptCharacterCombo.SelectedItem as CharacterChoice)?.Id;
         var assetId = (ScriptAssetCombo.SelectedItem as AssetChoice)?.Id;
+        if (kind == ScriptBlockKind.CharacterHide && ScriptCharacterCombo.SelectedItem is CharacterChoice { AllOnScreen: true })
+        {
+            await SaveHideAllAsync(sceneRow);
+            return;
+        }
         if (kind == ScriptBlockKind.CharacterHide)
         {
             // Hide a character, or an NPC render by its asset (1.4.1).
@@ -1368,6 +1377,51 @@ public partial class MainWindow
         {
             ShowError(ex);
         }
+    }
+
+    /// <summary>
+    /// «Ocultar personaje» with «Todos los que están en escena» (1.4.4): one «Ocultar» per character or NPC render on screen,
+    /// one after the other and without a pause between them, so they all leave at the same moment (a hide takes no time).
+    /// The pause of the editor goes after the last one. Only when adding a block: it becomes several blocks.
+    /// </summary>
+    private async Task SaveHideAllAsync(SceneScriptRow sceneRow)
+    {
+        if (_currentRepository is not { } repository) return;
+        if (_editingScriptBlockId is Guid editing && _scriptBlocks.Any(x => x.Id == editing))
+        {
+            MessageBox.Show(this, "«Todos los que están en escena» crea varios bloques: úsalo al agregar un bloque nuevo.",
+                "Guion", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        if (!int.TryParse(BlockPauseBox.Text.Trim(), out var pauseMs) || pauseMs < 0)
+        {
+            MessageBox.Show(this, "La pausa debe ser un entero de 0 ms o más.", "Guion", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        var order = _scriptBlocks.Count;
+        var targets = SceneComposer.OnScreenBefore(_scriptBlocks, order);
+        if (targets.Count == 0)
+        {
+            MessageBox.Show(this, "No hay nadie en escena para ocultar.", "Guion", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        try
+        {
+            SceneScriptBlock? last = null;
+            for (var i = 0; i < targets.Count; i++)
+            {
+                var (character, render) = targets[i];
+                last = new SceneScriptBlock(Guid.NewGuid(), sceneRow.Scene.Id, order + i, ScriptBlockKind.CharacterHide,
+                    character, "", character is null ? render : null, PauseAfterMs: i == targets.Count - 1 ? pauseMs : 0);
+                await repository.UpsertSceneScriptBlockAsync(last);
+            }
+            _editingScriptBlockId = last!.Id;
+            await LoadBlocksAsync(sceneRow.Scene.Id, last.Id);
+            await RefreshSceneTimingAsync(_scriptBlocks, last.Id);
+            ScriptStatusText.Text = $"{targets.Count} bloques «Ocultar» agregados: salen todos a la vez." +
+                (pauseMs > 0 ? $" La pausa de {pauseMs} ms va después del último." : "");
+        }
+        catch (Exception ex) { ShowError(ex); }
     }
 
     private async void DeleteBlock_Click(object sender, RoutedEventArgs e)
@@ -1866,8 +1920,9 @@ public partial class MainWindow
 }
 
 public sealed record ScriptBlockTypeChoice(ScriptBlockKind Kind, string Name);
-/// <summary>A character of the editor combos; <see cref="RenderAssetId"/>: an NPC render in «Ocultar personaje» (1.4.1).</summary>
-public sealed record CharacterChoice(Guid? Id, string Name, Guid? RenderAssetId = null);
+/// <summary>A character of the editor combos; <see cref="RenderAssetId"/>: an NPC render in «Ocultar personaje» (1.4.1);
+/// <see cref="AllOnScreen"/>: «Todos los que están en escena» of «Ocultar personaje» (1.4.4).</summary>
+public sealed record CharacterChoice(Guid? Id, string Name, Guid? RenderAssetId = null, bool AllOnScreen = false);
 /// <summary>A voice of a selector: a saved profile (Id), a direct voice (DirectVoiceId + DirectProvider, any engine since
 /// 1.4.0; no provider = Loquendo TTS7 as before), or the NPC profile with a voice of its own (both).</summary>
 public sealed record VoiceProfileChoice(Guid? Id, string Name, string? DirectVoiceId = null, string? DirectProvider = null)

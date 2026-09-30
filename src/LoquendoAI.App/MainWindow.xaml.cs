@@ -74,14 +74,10 @@ public partial class MainWindow : Window
         _sceneVoiceGenerationCancellation?.Cancel();
         _sceneRenderCancellation?.Cancel();
         ClearScenePreview();
-        _directorSceneId = null;
-        _directorDraft = [];
-        _directorDraftValidated = false;
-        _aiDraftPrompt = null;
-        _aiRecordedDraft = false;
+        _promptDraft.Clear();
+        _aiDraft.Clear();
         AiDraftGrid.ItemsSource = null;
         AiApplyButton.IsEnabled = false;
-        DirectorReplaceCheck.IsEnabled = true;
         DirectorDraftGrid.ItemsSource = null;
         DirectorApplyButton.IsEnabled = false;
         DirectorStatusText.Text = "Selecciona una escena y prepara el borrador.";

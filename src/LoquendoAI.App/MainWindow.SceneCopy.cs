@@ -62,25 +62,23 @@ public partial class MainWindow
 
     private async void CopyDraftForDirector_Click(object sender, RoutedEventArgs e)
     {
-        // Only an empty draft blocks the copy (1.4.3). «Aplicar al guion» ends the draft's link to its scene
-        // (_directorSceneId) so it is not applied twice, but its rows stay in the table and can still be copied.
+        // Only an empty draft blocks the copy (1.4.3). «Aplicar al guion» ends the draft's link to its scene so it is
+        // not applied twice, but its rows stay in the table and can still be copied. Each Director copies its own.
+        var session = DraftSessionOf(sender);
+        var grid = DraftGrid(session);
         if (_currentRepository is not { } repository ||
-            _directorDraft.Length == 0 || DirectorDraftGrid.ItemsSource is not IEnumerable<DirectorDraftRow> rowsSource)
+            session.Draft.Length == 0 || grid.ItemsSource is not IEnumerable<DirectorDraftRow> rowsSource)
         {
-            DirectorStatusText.Text = AiDirectorStatusText.Text = "Primero prepara un borrador para copiarlo.";
+            DraftStatus(session).Text = "Primero prepara un borrador para copiarlo.";
             return;
         }
-        if (!DirectorDraftGrid.CommitEdit(DataGridEditingUnit.Cell, true) ||
-            !DirectorDraftGrid.CommitEdit(DataGridEditingUnit.Row, true) ||
-            AiDraftGrid.ItemsSource is not null &&
-            (!AiDraftGrid.CommitEdit(DataGridEditingUnit.Cell, true) ||
-             !AiDraftGrid.CommitEdit(DataGridEditingUnit.Row, true))) return;
+        if (!grid.CommitEdit(DataGridEditingUnit.Cell, true) || !grid.CommitEdit(DataGridEditingUnit.Row, true)) return;
         var format = ChooseSceneCopyFormat("borrador");
         if (format is null) return;
         try
         {
             var rows = rowsSource.ToArray();
-            var blocks = _directorDraft.ToArray();
+            var blocks = session.Draft.ToArray();
             if (rows.Length != blocks.Length)
                 throw new InvalidOperationException("El borrador tiene filas pendientes; revísalo antes de copiar.");
             var assets = (await repository.GetAssetsByIdsAsync(blocks.Where(x => x.AssetId.HasValue)
@@ -108,7 +106,7 @@ public partial class MainWindow
                 : string.Join(Environment.NewLine, items.Select((item, index) =>
                     rows[index].Instruction ?? BuildSimplifiedScene([item], assets, sources, null)));
             Clipboard.SetText(content);
-            DirectorStatusText.Text = AiDirectorStatusText.Text = format == SceneCopyFormat.Json
+            DraftStatus(session).Text = format == SceneCopyFormat.Json
                 ? "Borrador copiado como JSON, con voces, ajustes e instrucciones editables. Puedes pegarlo en Director (prompt) y validarlo sin llamar a la IA."
                 : "Borrador copiado como bloque simplificado. Para conservar los WAV, usa JSON completo.";
         }
@@ -366,7 +364,7 @@ public partial class MainWindow
     private async Task PrepareCopiedSceneAsync(SqliteProjectRepository repository, Guid sceneId, string prompt)
     {
         DirectorApplyButton.IsEnabled = false;
-        _directorSceneId = null;
+        _promptDraft.Clear();
         DirectorDraftGrid.ItemsSource = null;
         DirectorDraftButton.IsEnabled = false;
         try
@@ -412,14 +410,13 @@ public partial class MainWindow
             }
             if (_currentRepository != repository || (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != sceneId)
                 throw new InvalidOperationException("La escena cambió. Prepara el borrador de nuevo.");
-            _directorSceneId = sceneId;
-            _directorPrompt = prompt;
-            _directorOriginal = original;
-            _directorDraft = draft.ToArray();
+            _promptDraft.SceneId = sceneId;
+            _promptDraft.Original = original;
+            _promptDraft.Draft = draft.ToArray();
             DirectorDraftGrid.ItemsSource = rows;
             var issues = rows.Count(x => !x.IsReady);
-            _directorDraftValidated = issues == 0;
-            DirectorApplyButton.IsEnabled = _directorDraftValidated;
+            _promptDraft.Validated = issues == 0;
+            DirectorApplyButton.IsEnabled = _promptDraft.Validated;
             DirectorStatusText.Text = issues == 0
                 ? $"Copia preparada: {rows.Count} bloques. Revisa y aplica; las voces importadas conservan su audio."
                 : copy.DraftInstructions is not null

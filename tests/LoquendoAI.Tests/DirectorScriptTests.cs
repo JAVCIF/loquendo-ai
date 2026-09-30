@@ -200,5 +200,19 @@ internal static class DirectorScriptTests
         var staggered = await SceneComposer.PlanAsync([Block(0, ScriptBlockKind.Pause, pause: 500), Block(1, ScriptBlockKind.CharacterHide, bart, 400),
             Block(2, ScriptBlockKind.CharacterHide, lisa)], _ => null);
         Assert.Sequence([500L, 900L], staggered.Media.Where(x => x.Kind == ScriptBlockKind.CharacterHide).Select(x => x.StartMs), "uno tras otro");
+
+        // Editor «Todos los que están en escena»: characters and NPC renders still on screen before the new block.
+        Guid guard = Guid.NewGuid(), extra = Guid.NewGuid();
+        SceneScriptBlock Show(int order, Guid? who, Guid asset) =>
+            new(Guid.NewGuid(), Guid.Empty, order, ScriptBlockKind.CharacterShow, who, AssetId: asset);
+        SceneScriptBlock[] scene =
+        [
+            Show(0, bart, Guid.NewGuid()), Show(1, lisa, Guid.NewGuid()), Show(2, null, guard), Show(3, null, extra),
+            Show(4, null, extra), Block(5, ScriptBlockKind.CharacterHide, lisa),
+            new(Guid.NewGuid(), Guid.Empty, 6, ScriptBlockKind.CharacterHide, AssetId: extra), Show(7, bart, Guid.NewGuid())
+        ];
+        Assert.Sequence(new (Guid?, Guid?)[] { (null, guard), (null, extra), (bart, null) }, SceneComposer.OnScreenBefore(scene, 8),
+            "Lisa y un extra ya salieron; Bart cambió de render y cuenta una vez");
+        Assert.Sequence(new (Guid?, Guid?)[] { (bart, null), (lisa, null) }, SceneComposer.OnScreenBefore(scene, 2), "antes del bloque #3");
     }
 }

@@ -169,7 +169,7 @@ public static class CharacterFraming
         return lanes;
     }
 
-    private static async Task<(double X, double Y, double W, double H, double Aspect)> VisibleBoundsAsync(string path, CancellationToken token)
+    internal static async Task<(double X, double Y, double W, double H, double Aspect)> VisibleBoundsAsync(string path, CancellationToken token)
     {
         var fmt = CultureInfo.InvariantCulture;
         if (MediaProbeCache.TryGet("bounds1", path, out var cached))

@@ -10,7 +10,9 @@ public partial class MainWindow
 {
     private async void PickDirectorDraftAsset_Click(object sender, RoutedEventArgs e)
     {
-        var grid = sender == AiPickDraftAssetButton ? AiDraftGrid : DirectorDraftGrid;
+        var session = DraftSessionOf(sender);
+        var grid = DraftGrid(session);
+        var status = DraftStatus(session);
         if (_currentRepository is not { } repository ||
             grid.SelectedItem is not DirectorDraftRow { Instruction: not null } row) return;
         if (!grid.CommitEdit(DataGridEditingUnit.Cell, true) ||
@@ -18,8 +20,7 @@ public partial class MainWindow
         var specs = ParseDirectorPrompt(row.Instruction);
         if (specs.Count != 1 || RelevantAssetKinds(specs[0].Kind).Count == 0)
         {
-            DirectorStatusText.Text = AiDirectorStatusText.Text =
-                "Selecciona una fila de fondo, render, imagen, vídeo, música o SFX.";
+            status.Text = "Selecciona una fila de fondo, render, imagen, vídeo, música o SFX.";
             return;
         }
         var kind = specs[0].Kind;
@@ -45,8 +46,7 @@ public partial class MainWindow
             if (_currentRepository != repository || grid.ItemsSource is not IEnumerable<DirectorDraftRow> current ||
                 !current.Any(x => ReferenceEquals(x, row)) || row.Instruction is null)
             {
-                DirectorStatusText.Text = AiDirectorStatusText.Text =
-                    "El borrador cambió mientras elegías el recurso. Vuelve a seleccionar la fila.";
+                status.Text = "El borrador cambió mientras elegías el recurso. Vuelve a seleccionar la fila.";
                 return;
             }
             var parts = row.Instruction.Split('|', StringSplitOptions.TrimEntries).ToList();
@@ -67,12 +67,11 @@ public partial class MainWindow
                 parts[0] = parts[0][..(commandEnd + 1)] + " " + asset.Id.ToString("D");
             }
             row.Instruction = string.Join(" | ", parts);
-            DirectorApplyButton.IsEnabled = AiApplyButton.IsEnabled = false;
-            _directorDraftValidated = false;
-            DirectorStatusText.Text = AiDirectorStatusText.Text =
-                "Recurso seleccionado. Pulsa Validar edición para revisar toda la escena.";
+            DraftApplyButton(session).IsEnabled = false;
+            session.Validated = false;
+            status.Text = "Recurso seleccionado. Pulsa Validar edición para revisar toda la escena.";
         }
-        catch (Exception ex) { DirectorStatusText.Text = AiDirectorStatusText.Text = ex.Message; }
+        catch (Exception ex) { status.Text = ex.Message; }
     }
 
     /// <summary>
@@ -89,14 +88,14 @@ public partial class MainWindow
         if (selected.Count == 0) return;
         e.Handled = true;
         var rows = source.ToList();
-        if (rows.Count != _directorDraft.Length)
+        if (rows.Count != _promptDraft.Draft.Length)
         {
-            DirectorStatusText.Text = AiDirectorStatusText.Text = "El borrador no coincide con la tabla. Prepáralo de nuevo.";
+            DirectorStatusText.Text = "El borrador no coincide con la tabla. Prepáralo de nuevo.";
             return;
         }
-        if (_aiRecordedDraft && rows.Any(x => selected.Contains(x) && x.Parameters == "Bloque original"))
+        if (_promptDraft.Recorded && rows.Any(x => selected.Contains(x) && x.Parameters == "Bloque original"))
         {
-            DirectorStatusText.Text = AiDirectorStatusText.Text =
+            DirectorStatusText.Text =
                 "Con voces grabadas, los bloques originales no se quitan del borrador: bórralos o edítalos en el editor después de aplicarlo.";
             return;
         }
@@ -106,15 +105,14 @@ public partial class MainWindow
         {
             if (selected.Contains(rows[i])) continue;
             keptRows.Add(rows[i] with { Order = keptRows.Count + 1 });
-            keptBlocks.Add(_directorDraft[i] with { OrderIndex = keptBlocks.Count });
+            keptBlocks.Add(_promptDraft.Draft[i] with { OrderIndex = keptBlocks.Count });
         }
         var removed = rows.Count - keptRows.Count;
-        _directorDraft = keptBlocks.ToArray();
+        _promptDraft.Draft = keptBlocks.ToArray();
         DirectorDraftGrid.ItemsSource = keptRows;
-        if (_aiDraftPrompt is not null) AiDraftGrid.ItemsSource = keptRows;
-        _directorDraftValidated = false;
-        DirectorApplyButton.IsEnabled = AiApplyButton.IsEnabled = false;
-        DirectorStatusText.Text = AiDirectorStatusText.Text = keptRows.Count == 0
+        _promptDraft.Validated = false;
+        DirectorApplyButton.IsEnabled = false;
+        DirectorStatusText.Text = keptRows.Count == 0
             ? "El borrador quedó vacío."
             : $"Quitaste {removed} fila(s) del borrador. Pulsa Validar edición antes de aplicarlo.";
     }
@@ -126,42 +124,38 @@ public partial class MainWindow
             e.Cancel = true; // Copied JSON and original recorded WAVs are not free-form instructions.
             return;
         }
-        DirectorApplyButton.IsEnabled = AiApplyButton.IsEnabled = false;
-        _directorDraftValidated = false;
-        DirectorStatusText.Text = AiDirectorStatusText.Text =
-            "Cambios pendientes: pulsa Validar edición antes de aplicar al guion.";
+        var session = DraftSessionOf(sender);
+        DraftApplyButton(session).IsEnabled = false;
+        session.Validated = false;
+        DraftStatus(session).Text = "Cambios pendientes: pulsa Validar edición antes de aplicar al guion.";
     }
 
     private async void ValidateDirectorDraft_Click(object sender, RoutedEventArgs e)
     {
-        if (_currentRepository is not { } repository || _directorSceneId is not Guid sourceSceneId ||
+        var session = DraftSessionOf(sender);
+        var grid = DraftGrid(session);
+        var statusText = DraftStatus(session);
+        if (_currentRepository is not { } repository || session.SceneId is not Guid sourceSceneId ||
             (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id is not Guid targetSceneId ||
-            DirectorDraftGrid.ItemsSource is not IEnumerable<DirectorDraftRow> source) return;
-        if (!DirectorDraftGrid.CommitEdit(DataGridEditingUnit.Cell, true) ||
-            !DirectorDraftGrid.CommitEdit(DataGridEditingUnit.Row, true) ||
-            AiDraftGrid.ItemsSource is not null &&
-            (!AiDraftGrid.CommitEdit(DataGridEditingUnit.Cell, true) ||
-             !AiDraftGrid.CommitEdit(DataGridEditingUnit.Row, true))) return;
+            grid.ItemsSource is not IEnumerable<DirectorDraftRow> source) return;
+        if (!grid.CommitEdit(DataGridEditingUnit.Cell, true) || !grid.CommitEdit(DataGridEditingUnit.Row, true)) return;
         var rows = source.ToArray();
-        if (rows.Length != _directorDraft.Length)
+        if (rows.Length != session.Draft.Length)
         {
-            DirectorStatusText.Text = AiDirectorStatusText.Text =
-                "El borrador no contiene todos los bloques originales. Genéralo de nuevo.";
+            statusText.Text = "El borrador no contiene todos los bloques originales. Genéralo de nuevo.";
             return;
         }
-        DirectorValidateButton.IsEnabled = AiValidateButton.IsEnabled = false;
-        DirectorApplyButton.IsEnabled = AiApplyButton.IsEnabled = false;
-        DirectorDraftGrid.IsReadOnly = AiDraftGrid.IsReadOnly = true;
-        DirectorPickDraftAssetButton.IsEnabled = AiPickDraftAssetButton.IsEnabled = false;
+        var validateButton = session.Ai ? AiValidateButton : DirectorValidateButton;
+        var pickButton = session.Ai ? AiPickDraftAssetButton : DirectorPickDraftAssetButton;
+        validateButton.IsEnabled = false;
+        DraftApplyButton(session).IsEnabled = false;
+        grid.IsReadOnly = true;
+        pickButton.IsEnabled = false;
         try
         {
-            var current = (await repository.GetSceneScriptBlocksAsync(targetSceneId)).ToArray();
-            if (_currentRepository != repository ||
-                (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != targetSceneId ||
-                // Only the voices draft depends on the exact scene it was made from; a continuation or a replacement
-                // over a changed scene is decided (and confirmed) by «Aplicar» (DraftApplyPolicy, 1.4.4).
-                targetSceneId == sourceSceneId && _aiRecordedDraft && current.Length > 0 && !current.SequenceEqual(_directorOriginal))
-                throw new InvalidOperationException("El guion original cambió. Elige otra escena o copia el borrador para conservarlo.");
+            // A changed scene is decided (and confirmed) by «Aplicar» (DraftApplyPolicy, 1.4.4), not here.
+            if (_currentRepository != repository || (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != targetSceneId)
+                throw new InvalidOperationException("La escena cambió. Valida otra vez.");
             var sources = await repository.GetAssetSourcesAsync();
             var blocks = new List<SceneScriptBlock>();
             var validated = new List<DirectorDraftRow>();
@@ -169,21 +163,21 @@ public partial class MainWindow
             {
                 if (row.Instruction is null)
                 {
-                    blocks.Add(_directorDraft[blocks.Count]);
+                    blocks.Add(session.Draft[blocks.Count]);
                     validated.Add(row);
                     continue;
                 }
                 var line = row.Instruction.Trim();
                 if (line.Length == 0 || line.Length > 700 || line.Contains('\r') || line.Contains('\n'))
                 {
-                    blocks.Add(_directorDraft[blocks.Count]);
+                    blocks.Add(session.Draft[blocks.Count]);
                     validated.Add(row with { Status = "Escribe exactamente una instrucción (máximo 700 caracteres)", IsReady = false });
                     continue;
                 }
                 var parsed = ParseDirectorPrompt(line);
                 if (parsed.Count != 1)
                 {
-                    blocks.Add(_directorDraft[blocks.Count]);
+                    blocks.Add(session.Draft[blocks.Count]);
                     validated.Add(row with
                     {
                         Status = parsed.Count > 1 && parsed.All(x => x.Kind == ScriptBlockKind.CharacterHide)
@@ -198,7 +192,7 @@ public partial class MainWindow
                 CharacterDefinition? character = null;
                 AssetRecord? asset = null;
                 string? resourceNote = null;
-                if (_aiRecordedDraft && (spec.Kind is ScriptBlockKind.Dialogue or ScriptBlockKind.Narration))
+                if (session.Recorded && (spec.Kind is ScriptBlockKind.Dialogue or ScriptBlockKind.Narration))
                     status ??= "Con voces grabadas no se pueden añadir diálogos nuevos";
                 if (status is null && spec.CharacterName.Length > 0)
                 {
@@ -209,7 +203,7 @@ public partial class MainWindow
                 }
                 if (status is null && character is null && IsNpcRender(spec))
                 {
-                    var npc = await CheckNpcRenderAsync(repository, sources, spec, _directorOriginal.Concat(blocks));
+                    var npc = await CheckNpcRenderAsync(repository, sources, spec, session.Original.Concat(blocks));
                     status = npc.Status;
                     asset = npc.Asset;
                     resourceNote = npc.Note;
@@ -234,7 +228,7 @@ public partial class MainWindow
                         }
                     }
                 }
-                var previous = _directorDraft[blocks.Count];
+                var previous = session.Draft[blocks.Count];
                 blocks.Add(new SceneScriptBlock(previous.Id, sourceSceneId, blocks.Count, spec.Kind,
                     CharacterId: character?.Id, Text: spec.Text, AssetId: asset?.Id,
                     VoiceProfileId: spec.Kind == ScriptBlockKind.Dialogue ? character?.DefaultVoiceProfileId : null,
@@ -250,26 +244,24 @@ public partial class MainWindow
             if (_currentRepository != repository ||
                 (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != targetSceneId)
                 throw new InvalidOperationException("La escena cambió. Valida otra vez.");
-            _directorDraft = blocks.ToArray();
-            DirectorDraftGrid.ItemsSource = validated;
-            if (_aiDraftPrompt is not null) AiDraftGrid.ItemsSource = validated;
+            session.Draft = blocks.ToArray();
+            grid.ItemsSource = validated;
             var pending = validated.Count(x => !x.IsReady);
-            _directorDraftValidated = pending == 0 && validated.Count > 0;
-            DirectorApplyButton.IsEnabled = _directorDraftValidated;
-            AiApplyButton.IsEnabled = _aiDraftPrompt is not null && DirectorApplyButton.IsEnabled;
-            DirectorStatusText.Text = AiDirectorStatusText.Text = pending == 0
+            session.Validated = pending == 0 && validated.Count > 0;
+            DraftApplyButton(session).IsEnabled = session.Validated;
+            statusText.Text = pending == 0
                 ? "Edición validada. Revisa las filas y aplica al guion cuando quieras."
                 : $"{pending} fila(s) pendientes. Corrige la instrucción y vuelve a validar.";
         }
         catch (Exception ex)
         {
-            DirectorStatusText.Text = AiDirectorStatusText.Text = ex.Message;
+            statusText.Text = ex.Message;
         }
         finally
         {
-            DirectorDraftGrid.IsReadOnly = AiDraftGrid.IsReadOnly = false;
-            DirectorPickDraftAssetButton.IsEnabled = AiPickDraftAssetButton.IsEnabled = true;
-            DirectorValidateButton.IsEnabled = AiValidateButton.IsEnabled = true;
+            grid.IsReadOnly = false;
+            pickButton.IsEnabled = true;
+            validateButton.IsEnabled = true;
         }
     }
 }
