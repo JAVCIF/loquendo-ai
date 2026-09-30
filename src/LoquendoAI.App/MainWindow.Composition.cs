@@ -300,7 +300,7 @@ public partial class MainWindow
     private static string PreviewFingerprint(SceneScriptBlock[] blocks, IReadOnlyDictionary<Guid, string> paths,
         CinemaState? cinemaStart = null)
     {
-        var data = new StringBuilder("scene-preview-v16\n");
+        var data = new StringBuilder("scene-preview-v17\n");
         // Bars carried over from the previous scene change the picture too.
         data.Append(JsonSerializer.Serialize(cinemaStart)).Append('\n');
         foreach (var block in blocks.OrderBy(x => x.OrderIndex))

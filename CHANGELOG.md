@@ -1,3 +1,14 @@
+## v1.4.3 — «Cambiar dirección», invertir sin saltos en VEGAS y copiar el borrador aplicado
+- **Nuevo «Cambiar dirección»** (Fondo, render, imagen y video, junto a «Invertir horizontal»): el render mira hacia el otro lado **sin moverse**; la imagen se voltea sobre su propio centro. Se guarda con el bloque, «Seguir desde el anterior» lo hereda y «Copiar escena» lo escribe.
+- **«Invertir horizontal» es un espejo de la capa en el cuadro**: pasa al lado contrario (izquierda ↔ derecha, también el carril automático), con el desplazamiento X, el giro y la animación horizontal reflejados, y mira hacia el otro lado. Ahora la preview y VEGAS hacen lo mismo. Con las dos casillas a la vez, cambia de lado y sigue mirando hacia donde miraba.
+- **VEGAS**: con el medio original (Pan/Crop nativo), invertir intercambiaba los bordes de todo el encuadre y el render saltaba al lado contrario de la escena (Bart encima de Lisa), aunque la preview lo mostraba en su sitio. Ahora el encuadre se refleja sobre el centro del propio render: giro, animación, cámara y gestos siguen donde estaban.
+- **Director**: `cambiar direccion=si` (alias `direccion=si`, `dar la vuelta=si`, `mirar al otro lado=si`). La gramática de la IA explica la diferencia con `voltear h=si`.
+- **Director (prompt)**: «Copiar borrador» vuelve a funcionar después de «Aplicar al guion»: solo se bloquea si el borrador está vacío.
+- Las previews guardadas se regeneran (cambió cómo se dibuja «Invertir horizontal»).
+- **Ojo con escenas antiguas**: un render que usaba «Invertir horizontal» (o `voltear h=si`) solo para mirar al otro lado ahora cambia de lado también en la preview. Para que se quede en su sitio, cambia esa casilla por «Cambiar dirección».
+- **Pruebas**: 2 nuevas. La preview y VEGAS (Pan/Crop nativo y medio normalizado) coinciden al invertir: a la izquierda, con giro, en horizontal + vertical y con gesto. «Cambiar dirección», «Invertir horizontal» y las dos juntas quedan donde deben, también desde el Director.
+  - Pendiente en Windows: compilar la app y probar las casillas y «Copiar borrador».
+
 ## v1.4.2 — Primera publicación en GitHub: instalador y portable completos
 - **Todo incluido**: el instalador y la portable traen .NET, la transcripción local (Python + faster-whisper, con el runtime de Visual C++) y ahora también **FFmpeg** (`tools\ffmpeg`). La app lo usa antes que cualquier otro FFmpeg del PC. Tú solo instalas Loquendo TTS 7 y/o tus voces SAPI 5 y, para SAPI 4, **BALCON** (<https://www.cross-plus-a.com/es/bconsole.htm>).
 - **Releases automáticos**: al subir una etiqueta `vX.Y.Z`, GitHub Actions ejecuta `scripts\publicar.ps1 -Instalador` en Windows y publica el instalador y la portable. Otro flujo compila y pasa las pruebas en cada push y pull request.

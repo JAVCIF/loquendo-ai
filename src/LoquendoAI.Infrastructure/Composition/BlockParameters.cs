@@ -153,6 +153,9 @@ public sealed record BlockParameters
     public int? VisualOffsetY { get; init; }
     public bool? FlipHorizontal { get; init; }
     public bool? FlipVertical { get; init; }
+    /// <summary>«Cambiar dirección» (1.4.3): the render looks the other way and stays where it is (the picture turns
+    /// around its own centre). «Invertir horizontal» instead mirrors the whole layer across the frame: picture and place.</summary>
+    public bool? ChangeDirection { get; init; }
     public double? RotationDegrees { get; init; }
     public int? MotionOffsetX { get; init; }
     public int? MotionOffsetY { get; init; }
@@ -279,6 +282,7 @@ public sealed record BlockParameters
                 VisualOffsetY = Visual("visualOffsetY", "videoOffsetY"),
                 FlipHorizontal = Flag("flipHorizontal"),
                 FlipVertical = Flag("flipVertical"),
+                ChangeDirection = Flag("changeDirection"),
                 RotationDegrees = Real("rotationDegrees"),
                 MotionOffsetX = Int("motionOffsetX"),
                 MotionOffsetY = Int("motionOffsetY"),
@@ -355,6 +359,7 @@ public sealed record BlockParameters
         Put("visualOffsetY", VisualOffsetY);
         Put("flipHorizontal", FlipHorizontal);
         Put("flipVertical", FlipVertical);
+        Put("changeDirection", ChangeDirection);
         Put("rotationDegrees", RotationDegrees);
         Put("motionOffsetX", MotionOffsetX);
         Put("motionOffsetY", MotionOffsetY);
@@ -484,7 +489,8 @@ public sealed record BlockParameters
             FlipHorizontal == true, FlipVertical == true, Angle(RotationDegrees, 180),
             Range(MotionOffsetX, 0, -1280, 1280), Range(MotionOffsetY, 0, -720, 720),
             Angle(MotionRotationDegrees, 720),
-            MotionDurationMs is >= 0 and <= 86_400_000 ? MotionDurationMs.Value : 0);
+            MotionDurationMs is >= 0 and <= 86_400_000 ? MotionDurationMs.Value : 0,
+            ChangeDirection == true);
     }
 
     public int Targets => TransitionTargets is >= 1 and <= SceneComposer.TargetAll ? TransitionTargets.Value : SceneComposer.TargetAll;

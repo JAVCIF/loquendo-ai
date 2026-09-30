@@ -62,6 +62,7 @@ public static class CharacterFraming
             if (position == "auto")
             {
                 var slot = lanes.GetValueOrDefault(clip.CharacterId ?? clip.BlockId) % laneCount;
+                if (clip.MirrorPlacement) slot = laneCount - 1 - slot; // «Invertir horizontal»: the mirrored lane
                 position = $"slot:{slot}:{laneCount}";
             }
             // Trim transparent canvas padding. Explicit medium/close shots use the

@@ -16,7 +16,7 @@ public sealed record SceneMedia(Guid BlockId, ScriptBlockKind Kind, long StartMs
     string VegasTransitionPreset = "", bool CutVideo = false,
     int VolumePercent = 100, bool HasVideoAudio = false,
     int MotionOffsetX = 0, int MotionOffsetY = 0, double MotionRotationDegrees = 0,
-    long MotionDurationMs = 0, Guid? HideBlockId = null);
+    long MotionDurationMs = 0, Guid? HideBlockId = null, bool MirrorPlacement = false);
 /// <summary>A planned scene. <see cref="CameraCues"/> are the camera blocks on the clock; <see cref="Camera"/> is the
 /// resulting path, filled in by CharacterFraming.ApplyAsync once the renders have their final placement.</summary>
 public sealed record SceneComposition(long DurationMs, IReadOnlyList<SceneMedia> Media,
@@ -30,7 +30,7 @@ public sealed record SceneTransition(long StartMs, long DurationMs, string Style
 public sealed record VisualTransformOptions(int MaxWidth, int MaxHeight, int OffsetX = 0, int OffsetY = 0,
     bool FlipHorizontal = false, bool FlipVertical = false, double RotationDegrees = 0,
     int MotionOffsetX = 0, int MotionOffsetY = 0, double MotionRotationDegrees = 0,
-    long MotionDurationMs = 0);
+    long MotionDurationMs = 0, bool ChangeDirection = false);
 
 public static class SceneComposer
 {
@@ -200,6 +200,15 @@ public static class SceneComposer
     public static bool WaitForSound(SceneScriptBlock block) => BlockParameters.Of(block).WaitsForSound(block.Kind);
 
     public static string Position(SceneScriptBlock block) => BlockParameters.Of(block).EffectivePosition;
+
+    /// <summary>The same place seen in a mirror: left and right swap, the centre stays. «auto» is mirrored when its
+    /// lane is assigned (CharacterFraming).</summary>
+    public static string MirrorPosition(string position) => position switch
+    {
+        "izquierda" => "derecha",
+        "derecha" => "izquierda",
+        _ => position
+    };
 
     public static long? VisualDuration(SceneScriptBlock block) => BlockParameters.Of(block).VisualDuration(block.Kind);
 
@@ -382,17 +391,22 @@ public static class SceneComposer
                         _ => overrideMode
                     })
                 };
+                // «Invertir horizontal» mirrors the whole layer across the frame (1.4.3): the other side, the offset,
+                // the turn and the horizontal motion are mirrored, and the picture is flipped in place. «Cambiar
+                // dirección» only flips the picture in place; both together leave it looking the same way.
+                var mirror = transform.FlipHorizontal;
                 media.Add(new SceneMedia(block.Id, kind, incoming is null ? clock : VisualStart(incoming, block),
-                    duration, path, Position(block), block.CharacterId,
+                    duration, path, mirror ? MirrorPosition(Position(block)) : Position(block), block.CharacterId,
                     video.Layer, greenScreen, video.KeyColor, video.Tolerance, sourceDuration,
                     StretchAudio(block) && AudioDuration(block).HasValue, AudioDuration(block).HasValue,
-                    transform.MaxWidth, transform.MaxHeight, transform.OffsetX, transform.OffsetY,
-                    transform.FlipHorizontal, transform.FlipVertical, FramingPreset(block), "", AutoTrimBorders(block),
-                    transform.RotationDegrees, fadeIn, effect.Item1, effect.Item2,
+                    transform.MaxWidth, transform.MaxHeight, mirror ? -transform.OffsetX : transform.OffsetX, transform.OffsetY,
+                    transform.FlipHorizontal != transform.ChangeDirection, transform.FlipVertical, FramingPreset(block), "", AutoTrimBorders(block),
+                    mirror ? -transform.RotationDegrees : transform.RotationDegrees, fadeIn, effect.Item1, effect.Item2,
                     kind == ScriptBlockKind.Video && incoming?.Style == "cruce" && fadeIn == 0,
                     volumePercent, hasVideoAudio,
-                    transform.MotionOffsetX, transform.MotionOffsetY, transform.MotionRotationDegrees,
-                    transform.MotionDurationMs));
+                    mirror ? -transform.MotionOffsetX : transform.MotionOffsetX, transform.MotionOffsetY,
+                    mirror ? -transform.MotionRotationDegrees : transform.MotionRotationDegrees,
+                    transform.MotionDurationMs, MirrorPlacement: mirror));
                 if (kind is ScriptBlockKind.Dialogue or ScriptBlockKind.Narration || (kind == ScriptBlockKind.SoundEffect && WaitForSound(block))) clock += duration;
                 if (kind is ScriptBlockKind.Dialogue or ScriptBlockKind.Narration or ScriptBlockKind.SoundEffect ||
                     (kind == ScriptBlockKind.Music && AudioDuration(block).HasValue))

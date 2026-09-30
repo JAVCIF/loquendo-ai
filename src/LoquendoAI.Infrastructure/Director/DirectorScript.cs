@@ -122,6 +122,8 @@ public static class DirectorScript
                         "RAPIDEZ" or "TEMPO" when kind == ScriptBlockKind.Gesture => "VELOCIDAD",
                         "CANTIDAD" or "RANGO" or "INTENSIDAD" or "NIVEL" when kind == ScriptBlockKind.Blur => "VALOR",
                         "INVERTIR HORIZONTAL" or "VOLTEAR HORIZONTAL" => "VOLTEAR H",
+                        // «Cambiar dirección» (1.4.3): looks the other way without moving (voltear h mirrors the place too).
+                        "DIRECCION" or "CAMBIAR DE DIRECCION" or "MIRAR AL OTRO LADO" or "DAR LA VUELTA" => "CAMBIAR DIRECCION",
                         "INVERTIR VERTICAL" or "VOLTEAR VERTICAL" => "VOLTEAR V",
                         "GIRO" => "ROTACION",
                         "MOVER X" => "X",
@@ -297,7 +299,7 @@ public static class DirectorScript
         "ANGULO" or "LADO" or "ESTIRAR" or "VELOCIDAD" or "EJE" => kind == ScriptBlockKind.Gesture,
         "DURACION" or "VALOR" or "ESTILO" when kind == ScriptBlockKind.Blur => true,
         "DURACION" when kind == ScriptBlockKind.Camera => true,
-        "ANCHO" or "ALTO" or "X" or "Y" or "VOLTEAR H" or "VOLTEAR V" or "ROTACION" or
+        "ANCHO" or "ALTO" or "X" or "Y" or "VOLTEAR H" or "VOLTEAR V" or "CAMBIAR DIRECCION" or "ROTACION" or
         "ANIMAR X" or "ANIMAR Y" or "ANIMAR GIRO" or "ANIMAR MS" =>
             kind is ScriptBlockKind.Background or ScriptBlockKind.CharacterShow or ScriptBlockKind.Image or ScriptBlockKind.Video,
         "DURACION" => kind is ScriptBlockKind.Background or ScriptBlockKind.CharacterShow or
@@ -335,7 +337,7 @@ public static class DirectorScript
         "DURACION" => long.TryParse(value, out var d) && d is >= 1 and <= 86_400_000,
         "PAUSA" => int.TryParse(value, out var pause) && pause is >= 0 and <= 86_400_000,
         "VOLUMEN" => int.TryParse(value, out var volume) && volume is >= 0 and <= 200,
-        "VOLTEAR H" or "VOLTEAR V" or "BORDES" or "CROMA" or "ESPERAR" => NormalizeDirectorName(value) is "SI" or "NO",
+        "VOLTEAR H" or "VOLTEAR V" or "CAMBIAR DIRECCION" or "BORDES" or "CROMA" or "ESPERAR" => NormalizeDirectorName(value) is "SI" or "NO",
         "CAPA" => NormalizeDirectorName(value) is "GUION" or "FONDO" or "SOBRE" or
             "FONDO FIJO" or "FONDO-FIJO" or "ORDEN DEL GUION" or "ENCIMA DE TODO",
         "MODO AUDIO" => NormalizeDirectorName(value) is "LOOP" or "TEMPO",
@@ -439,6 +441,7 @@ public static class DirectorScript
             VisualDurationMs = SceneComposer.IsVisualBlock(kind) ? Long("DURACION") : null,
             FlipHorizontal = Flag("VOLTEAR H") ?? false,
             FlipVertical = Flag("VOLTEAR V") ?? false,
+            ChangeDirection = Flag("CAMBIAR DIRECCION") ?? false,
             RotationDegrees = double.TryParse(Get("ROTACION"), NumberStyles.Float,
                 CultureInfo.InvariantCulture, out var rotation) ? rotation : 0,
             MotionOffsetX = Integer("ANIMAR X") ?? 0,

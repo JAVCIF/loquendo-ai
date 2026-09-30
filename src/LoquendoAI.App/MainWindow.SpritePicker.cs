@@ -133,6 +133,7 @@ public partial class MainWindow
             VisualOffsetY = Int(VisualOffsetYBox, 0),
             FlipHorizontal = visual && VisualFlipHorizontalCheck.IsChecked == true,
             FlipVertical = visual && VisualFlipVerticalCheck.IsChecked == true,
+            ChangeDirection = visual && VisualChangeDirectionCheck.IsChecked == true,
             RotationDegrees = Real(VisualRotationBox),
             MotionOffsetX = Int(MotionOffsetXBox, 0),
             MotionOffsetY = Int(MotionOffsetYBox, 0),

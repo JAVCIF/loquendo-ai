@@ -52,8 +52,10 @@ internal static class DirectorAiGrammar
 
         OPCIONES COMPATIBLES (solo después de |, excepto diálogo, pausa y ocultar):
         Fondo/render/imagen/video: ancho=64..1280, alto=64..720, x=-1280..1280, y=-720..720,
-        rotacion=-180..180, voltear h=si/no, voltear v=si/no, duracion=<ms>,
+        rotacion=-180..180, cambiar direccion=si/no, voltear h=si/no, voltear v=si/no, duracion=<ms>,
         transicion=heredar/corte/fundido/disolvente/flash/barrido.
+        Para que un personaje mire hacia el otro lado usa cambiar direccion=si: se queda en su sitio. voltear h=si
+        es un espejo de la capa: también la pasa al lado contrario del cuadro (izquierda ↔ derecha).
         Para mover una capa DURANTE su aparición: animar x=-1280..1280, animar y=-720..720,
         animar giro=-720..720 y animar ms=0..86400000. Son DELTAS desde x/y/rotacion iniciales;
         animar ms=0 usa toda la duración visible. Ejemplo: [MOSTRAR] Bart | A2 | derecha | animar x=-250 | animar giro=12 | animar ms=2400.

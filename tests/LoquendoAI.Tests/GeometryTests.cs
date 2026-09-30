@@ -1,6 +1,7 @@
 using System.Text.Json;
 using LoquendoAI.Core.Models;
 using LoquendoAI.Infrastructure.Composition;
+using LoquendoAI.Infrastructure.Director;
 
 namespace LoquendoAI.Tests;
 
@@ -133,6 +134,153 @@ internal static class GeometryTests
             }
         }
         Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
+
+    [Test("Invertir en VEGAS (Pan/Crop nativo): el render se voltea en su sitio, como en la preview")]
+    public static async Task FlipInPlaceMatchesPreview()
+    {
+        TestMedia.RequireFfmpeg();
+        using var folder = new TempFolder();
+        // Left half red, right half blue: the red half says which way the render faces.
+        var render = TestMedia.Png(folder.File("media/bart.png"), 400, 800,
+            (x, _) => x < 200 ? ((byte)220, (byte)20, (byte)20, (byte)255) : ((byte)20, (byte)20, (byte)220, (byte)255));
+        var bart = Guid.NewGuid();
+        SceneMedia Character(string position, bool h, bool v = false, double rotation = 0, int offsetX = 0) =>
+            new(Guid.NewGuid(), ScriptBlockKind.CharacterShow, 0, 1000, render, position, bart, VisualMaxWidth: 1280, VisualMaxHeight: 610,
+                VisualOffsetX: offsetX, FlipHorizontal: h, FlipVertical: v, RotationDegrees: rotation);
+        // Tilted towards its right from 480 ms: at 640 ms the tilt peaks (a flipped render keeps the screen direction).
+        var sway = new GestureCue(480, new GestureSettings("personaje", GestureSettings.ParseSteps("balanceo"), 8, "derecha", 0, 1, "pies"), bart);
+        var cases = new (string Name, SceneMedia Media, GestureCue? Gesture, long[] Times)[]
+        {
+            ("sin_invertir_giro20", Character("izquierda", false, rotation: 20), null, [400]),
+            ("izquierda_invertida", Character("izquierda", true), null, [400]),
+            ("izquierda_invertida_giro20", Character("izquierda", true, rotation: 20), null, [400]),
+            ("derecha_invertida_hv_offset", Character("derecha", true, true, offsetX: 40), null, [400]),
+            ("izquierda_invertida_con_gesto", Character("izquierda", true), sway, [200, 640]),
+        };
+        var problems = new List<string>();
+        foreach (var (name, media, gesture, times) in cases)
+        {
+            var scene = new SceneComposition(1000, [media], GestureCues: gesture is null ? null : [gesture]);
+            var preview = folder.File($"out/{name}.mp4");
+            await SceneComposer.RenderAsync(scene, preview);
+            foreach (var mode in new[] { VegasExportMode.Normal, VegasExportMode.Legacy })
+            {
+                var export = folder.File($"out/{name}_{mode}");
+                await VegasBridge.ExportAsync(scene, export, name, 720, mode: mode);
+                using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(export, "escena.json")));
+                var clip = manifest.RootElement.GetProperty("Clips")[0];
+                var native = clip.TryGetProperty("Native", out var frame) && frame.ValueKind == JsonValueKind.Object;
+                var script = await File.ReadAllTextAsync(Path.Combine(export, "Abrir_en_VEGAS_14_o_superior.cs"));
+                foreach (var t in times)
+                {
+                    var expected = TestMedia.BoundingBox(TestMedia.Frame(preview, t / 1000d), Red)
+                        ?? throw new AssertionException($"{name}: el render no aparece en la preview");
+                    // Normalized media has the flip baked in: its own canvas is checked (at rest).
+                    if (!native && t != times[0]) continue;
+                    var actual = native ? ScriptBox(script, [(0, 0), (200, 0), (200, 800), (0, 800)], t)
+                        : TestMedia.BoundingBox(TestMedia.Frame(clip.GetProperty("ImportPath").GetString()!), Red);
+                    var difference = actual is null ? int.MaxValue : expected.Zip(actual, (a, b) => Math.Abs(a - b)).Max();
+                    if (difference > 3)
+                        problems.Add($"{name} {mode} {t} ms: preview [{string.Join(",", expected)}] VEGAS [{string.Join(",", actual ?? [])}] ({difference} px)");
+                }
+            }
+        }
+        Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
+
+    [Test("Cambiar dirección mira al otro lado en su sitio; Invertir horizontal refleja la capa al otro lado (preview = VEGAS)")]
+    public static async Task ChangeDirectionAndMirror()
+    {
+        TestMedia.RequireFfmpeg();
+        static DirectorSpec One(string line) => DirectorScript.ParseDirectorPrompt(line).Single();
+        var turned = BlockParameters.Parse(DirectorScript.DirectorParameters(One("[MOSTRAR] Bart | izquierda | cambiar direccion=si")));
+        Assert.Equal((true, false), (turned.ChangeDirection == true, turned.FlipHorizontal == true), "Director: cambiar direccion");
+        Assert.True(BlockParameters.Parse(DirectorScript.DirectorParameters(One("[MOSTRAR] Bart | derecha | dar la vuelta=si"))).ChangeDirection == true,
+            "Director: alias «dar la vuelta»");
+        Assert.True(BlockParameters.Parse(turned.ToJson()).ChangeDirection == true, "se guarda con el bloque");
+
+        using var folder = new TempFolder();
+        var render = TestMedia.Png(folder.File("media/bart.png"), 400, 800,
+            (x, _) => x < 200 ? ((byte)220, (byte)20, (byte)20, (byte)255) : ((byte)20, (byte)20, (byte)220, (byte)255));
+        // Displayed 305×610 at the left margin (80): the red half is 80..232, the blue half 232..385.
+        var cases = new (string Name, bool Mirror, bool Turn, int RedLeft, int RedRight)[]
+        {
+            ("tal_cual", false, false, 80, 232),
+            ("cambiar_direccion", false, true, 232, 385),       // same place, looks the other way
+            ("invertir_horizontal", true, false, 1048, 1200),   // mirrored: right side, red half on the outside
+            ("invertir_y_cambiar", true, true, 895, 1048),      // right side, looking as before
+        };
+        var problems = new List<string>();
+        foreach (var (name, mirror, turn, redLeft, redRight) in cases)
+        {
+            var parameters = new BlockParameters
+            {
+                Position = "izquierda", FramingPreset = "original", VisualMaxWidth = 1280, VisualMaxHeight = 610,
+                VisualOffsetX = 30, FlipHorizontal = mirror, ChangeDirection = turn
+            };
+            var blocks = new[]
+            {
+                new SceneScriptBlock(Guid.NewGuid(), Guid.Empty, 0, ScriptBlockKind.CharacterShow, Guid.NewGuid(), ParametersJson: parameters.ToJson()),
+                new SceneScriptBlock(Guid.NewGuid(), Guid.Empty, 1, ScriptBlockKind.Pause, PauseAfterMs: 1000)
+            };
+            var scene = await SceneComposer.PlanAsync(blocks, x => x.Kind == ScriptBlockKind.CharacterShow ? render : null);
+            var preview = folder.File($"out/{name}.mp4");
+            await SceneComposer.RenderAsync(scene, preview);
+            var box = TestMedia.BoundingBox(TestMedia.Frame(preview, 0.4), Red)
+                ?? throw new AssertionException($"{name}: el render no aparece en la preview");
+            // x=30 moves the layer right; mirrored, it moves it left.
+            var shift = mirror ? -30 : 30;
+            if (Math.Abs(box[0] - (redLeft + shift)) > 3 || Math.Abs(box[2] - (redRight + shift)) > 3)
+                problems.Add($"{name} preview: rojo en {box[0]}..{box[2]}, se esperaba {redLeft + shift}..{redRight + shift}");
+            var export = folder.File($"out/{name}_vegas");
+            await VegasBridge.ExportAsync(scene, export, name, 720);
+            using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(export, "escena.json")));
+            var clip = manifest.RootElement.GetProperty("Clips")[0];
+            var actual = clip.TryGetProperty("Native", out var native) && native.ValueKind == JsonValueKind.Object
+                ? ScriptBox(await File.ReadAllTextAsync(Path.Combine(export, "Abrir_en_VEGAS_14_o_superior.cs")), [(0, 0), (200, 0), (200, 800), (0, 800)])
+                : TestMedia.BoundingBox(TestMedia.Frame(clip.GetProperty("ImportPath").GetString()!), Red);
+            if (actual is null || box.Zip(actual, (a, b) => Math.Abs(a - b)).Max() > 3)
+                problems.Add($"{name} VEGAS: [{string.Join(",", actual ?? [])}] preview [{string.Join(",", box)}]");
+        }
+        Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
+
+    /// <summary>Simulates VEGAS on a Pan/Crop keyframe of the script (the first one, or the one at atMs): the Bounds quad, turned by RotateBy
+    /// around Center, is what the whole 1280×720 frame shows; returns where the source corners land.</summary>
+    private static int[] ScriptBox(string script, (double X, double Y)[] corners, long atMs = 0)
+    {
+        // The keyframe at atMs (key0 is the event start; the others are written with their time).
+        var marker = $"Timecode.FromMilliseconds({atMs}))";
+        if (script.IndexOf(marker, StringComparison.Ordinal) is var at and >= 0) script = script[at..];
+        static double[] Numbers(string text) => System.Text.RegularExpressions.Regex.Matches(text, @"-?[0-9]+(\.[0-9]+)?(E-?[0-9]+)?")
+            .Select(m => double.Parse(m.Value, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+        var bounds = System.Text.RegularExpressions.Regex.Match(script, @"Bounds = new VideoMotionBounds\(([^)]*)\)");
+        var rest = script[(bounds.Index + bounds.Length)..];
+        var next = rest.IndexOf("Bounds = ", StringComparison.Ordinal);
+        var block = next < 0 ? rest : rest[..next];
+        var b = Numbers(bounds.Groups[1].Value);
+        var c = Numbers(System.Text.RegularExpressions.Regex.Match(block, @"Center = new VideoMotionVertex\(([^)]*)\)").Groups[1].Value);
+        var turn = System.Text.RegularExpressions.Regex.Match(block, @"RotateBy\(([^)]*)\)") is { Success: true } r
+            ? Numbers(r.Groups[1].Value)[0] : 0;
+        (double X, double Y) Turn(double x, double y) => (c[0] + (x - c[0]) * Math.Cos(turn) - (y - c[1]) * Math.Sin(turn),
+            c[1] + (x - c[0]) * Math.Sin(turn) + (y - c[1]) * Math.Cos(turn));
+        var tl = Turn(b[0], b[1]);
+        var tr = Turn(b[2], b[3]);
+        var bl = Turn(b[6], b[7]);
+        // Source point = tl + u·(tr − tl) + v·(bl − tl); output = (u·1280, v·720).
+        var (ax, ay, bx, by) = (tr.X - tl.X, tr.Y - tl.Y, bl.X - tl.X, bl.Y - tl.Y);
+        var det = ax * by - ay * bx;
+        var points = corners.Select(p =>
+        {
+            var (dx, dy) = (p.X - tl.X, p.Y - tl.Y);
+            return ((dx * by - dy * bx) / det * 1280, (ax * dy - ay * dx) / det * 720);
+        }).ToArray();
+        return
+        [
+            Math.Max(0, (int)Math.Round(points.Min(p => p.Item1))), Math.Max(0, (int)Math.Round(points.Min(p => p.Item2))),
+            Math.Min(1280, (int)Math.Round(points.Max(p => p.Item1))), Math.Min(720, (int)Math.Round(points.Max(p => p.Item2)))
+        ];
     }
 
     private static (int, int)[] Box(int width, int height) => [(0, 0), (width, 0), (width, height), (0, height)];

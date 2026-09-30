@@ -110,6 +110,7 @@ public partial class MainWindow
         VisualRotationBox.Text = Math.Round(angle, 3).ToString("0.###", CultureInfo.InvariantCulture);
         VisualFlipHorizontalCheck.IsChecked = end.FlipHorizontal;
         VisualFlipVerticalCheck.IsChecked = end.FlipVertical;
+        VisualChangeDirectionCheck.IsChecked = end.ChangeDirection;
         if (kind is ScriptBlockKind.CharacterShow or ScriptBlockKind.Image)
             CharacterPositionCombo.SelectedIndex = SceneComposer.Position(previous) switch { "izquierda" => 0, "derecha" => 2, "auto" => 3, _ => 1 };
         if (kind == ScriptBlockKind.CharacterShow)

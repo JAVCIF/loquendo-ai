@@ -778,6 +778,7 @@ public partial class MainWindow
             VisualOffsetYBox.Text = transform.OffsetY.ToString(CultureInfo.InvariantCulture);
             VisualFlipHorizontalCheck.IsChecked = transform.FlipHorizontal;
             VisualFlipVerticalCheck.IsChecked = transform.FlipVertical;
+            VisualChangeDirectionCheck.IsChecked = transform.ChangeDirection;
             VisualRotationBox.Text = transform.RotationDegrees.ToString("0.###", CultureInfo.InvariantCulture);
             MotionOffsetXBox.Text = transform.MotionOffsetX.ToString(CultureInfo.InvariantCulture);
             MotionOffsetYBox.Text = transform.MotionOffsetY.ToString(CultureInfo.InvariantCulture);
@@ -1000,6 +1001,7 @@ public partial class MainWindow
         VisualOffsetYBox.Text = "0";
         VisualFlipHorizontalCheck.IsChecked = false;
         VisualFlipVerticalCheck.IsChecked = false;
+        VisualChangeDirectionCheck.IsChecked = false;
         VisualRotationBox.Text = "0";
         MotionOffsetXBox.Text = MotionOffsetYBox.Text = MotionRotationBox.Text = MotionDurationBox.Text = "0";
         VisualTransitionOverrideCombo.SelectedIndex = 0;
@@ -1131,7 +1133,7 @@ public partial class MainWindow
                 "Si luego ese render recibe personaje, este bloque oculta al personaje.",
             ScriptBlockKind.SoundEffect => "SFX: duración opcional; recorta/repite o ajusta velocidad sin cambiar el tono. Esperar desplaza el bloque siguiente.",
             ScriptBlockKind.Music => "Música: duración opcional; si queda vacía, suena hasta el final de la escena al 25 %.",
-            ScriptBlockKind.Video => "Video: tamaño máximo y desplazamiento conservan la proporción; invertir horizontal/vertical es independiente de posición. Fondo fijo llena el cuadro.",
+            ScriptBlockKind.Video => "Video: tamaño máximo y desplazamiento conservan la proporción; cambiar dirección voltea la imagen en su sitio; invertir horizontal la refleja al otro lado del cuadro. Fondo fijo llena el cuadro.",
             ScriptBlockKind.TextOverlay => "Texto en pantalla: queda guardado en el guion, pero todavía no se dibuja en el MP4.",
             ScriptBlockKind.Transition => "Entrada/salida: fundido a negro. Cambio: corte a mitad. Cruce: solapa solo los tipos marcados; los demás medios nuevos cambian por corte a mitad.",
             ScriptBlockKind.Comment => "Comentario de dirección: queda guardado y no aparece en el MP4.",

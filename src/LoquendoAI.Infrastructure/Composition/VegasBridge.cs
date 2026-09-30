@@ -695,13 +695,11 @@ public static class VegasBridge
             var key = Keyframe(sb, i, at);
             // Source-space Pan/Crop vertices. Their rectangle has the output aspect and
             // maps the untouched original onto its requested position in the project.
-            var left = clip.FlipHorizontal ? frame.Right : frame.Left;
-            var right = clip.FlipHorizontal ? frame.Left : frame.Right;
-            var top = clip.FlipVertical ? frame.Bottom : frame.Top;
-            var bottom = clip.FlipVertical ? frame.Top : frame.Bottom;
+            var (left, top, right, bottom, centerX, centerY) = FlipFrame(clip, frame.Left, frame.Top, frame.Right, frame.Bottom,
+                frame.RotationCenterX, frame.RotationCenterY, frame.PivotX ?? frame.CenterX, frame.PivotY ?? frame.CenterY);
             sb.AppendLine("    " + key + ".Bounds = " + Bounds(left, top, right, bottom) + ";");
-            sb.AppendLine("    " + key + ".Center = new VideoMotionVertex(" + Number(frame.RotationCenterX) + "f, " +
-                Number(frame.RotationCenterY) + "f);");
+            sb.AppendLine("    " + key + ".Center = new VideoMotionVertex(" + Number(centerX) + "f, " +
+                Number(centerY) + "f);");
             sb.AppendLine("    " + key + ".Type = VideoKeyframeType.Linear;");
             AppendNativeTransform(sb, key, clip, frame, MotionProgress(clip, at));
         }
@@ -786,25 +784,49 @@ public static class VegasBridge
             var corners = quad.Select(x => upright.Apply(x.X, x.Y)).ToArray();
             double left = corners.Min(x => x.X), right = corners.Max(x => x.X);
             double top = corners.Min(x => x.Y), bottom = corners.Max(x => x.Y);
-            // Native media: the flips are the swapped edges, as in AppendNativeMotion (normalized media has them baked in).
-            var native = clip.Native is not null;
-            if (native && clip.FlipHorizontal) (left, right) = (right, left);
-            if (native && clip.FlipVertical) (top, bottom) = (bottom, top);
+            // Native media: the flips mirror the frame about the render's own centre, as in AppendNativeMotion
+            // (normalized media has them baked in).
+            var (centerX, centerY) = center;
+            if (clip.Native is not null && clip.Layout is { } placed)
+            {
+                (left, top, right, bottom, centerX, centerY) = FlipFrame(clip, left, top, right, bottom, center.X, center.Y,
+                    placed.SourceX + (placed.CenterX - placed.X) / placed.Scale, placed.SourceY + (placed.CenterY - placed.Y) / placed.Scale);
+                turn *= FlipTurnSign(clip);
+            }
             sb.AppendLine("    " + key + ".Bounds = " + Bounds(left, top, right, bottom) + ";");
-            sb.AppendLine("    " + key + ".Center = new VideoMotionVertex(" + Number(center.X) + "f, " + Number(center.Y) + "f);");
+            sb.AppendLine("    " + key + ".Center = new VideoMotionVertex(" + Number(centerX) + "f, " + Number(centerY) + "f);");
             sb.AppendLine("    " + key + ".Type = VideoKeyframeType.Linear;");
             if (Math.Abs(turn) > 0.000001) sb.AppendLine("    " + key + ".RotateBy(" + Number(turn) + ");");
         }
     }
 
+    /// <summary>
+    /// A flipped render on native media (1.4.3). The flip must turn the render around in place, like the preview
+    /// (FFmpeg flips the layer itself, before placing it). The Pan/Crop frame is the whole project frame mapped into
+    /// the source, so swapping its own edges mirrors the whole frame: the render jumped to the other side of the
+    /// scene. Instead the frame is mirrored about the render's own centre in source pixels (<paramref name="axisX"/>,
+    /// <paramref name="axisY"/>): position, camera and motion stay where they were and only the picture turns.
+    /// </summary>
+    internal static (double Left, double Top, double Right, double Bottom, double CenterX, double CenterY) FlipFrame(Clip clip,
+        double left, double top, double right, double bottom, double centerX, double centerY, double axisX, double axisY)
+    {
+        if (clip.FlipHorizontal) (left, right, centerX) = (2 * axisX - left, 2 * axisX - right, 2 * axisX - centerX);
+        if (clip.FlipVertical) (top, bottom, centerY) = (2 * axisY - top, 2 * axisY - bottom, 2 * axisY - centerY);
+        return (left, top, right, bottom, centerX, centerY);
+    }
+
+    /// <summary>In a mirrored frame a turn goes the other way: one flip reverses it (two flips are a half turn and keep it).</summary>
+    private static int FlipTurnSign(Clip clip) => clip.FlipHorizontal != clip.FlipVertical ? -1 : 1;
+
     private static void AppendNativeTransform(StringBuilder sb, string key, Clip clip,
         NativeFrame frame, double progress)
     {
-        var degrees = clip.RotationDegrees + clip.MotionRotationDegrees * progress;
+        var degrees = (clip.RotationDegrees + clip.MotionRotationDegrees * progress) * FlipTurnSign(clip);
         if (Math.Abs(degrees) > 0.0001)
             sb.AppendLine("    " + key + ".RotateBy(" + Number(-degrees * Math.PI / 180) + ");");
-        var dx = clip.MotionOffsetX * frame.MotionUnitsX * progress;
-        var dy = clip.MotionOffsetY * frame.MotionUnitsY * progress;
+        // Mirrored frame: a move along a flipped axis is written the other way round too.
+        var dx = clip.MotionOffsetX * frame.MotionUnitsX * progress * (clip.FlipHorizontal ? -1 : 1);
+        var dy = clip.MotionOffsetY * frame.MotionUnitsY * progress * (clip.FlipVertical ? -1 : 1);
         if (Math.Abs(dx) > 0.0001 || Math.Abs(dy) > 0.0001)
             sb.AppendLine("    " + key + ".MoveBy(new VideoMotionVertex(" + Number(-dx) +
                 "f, " + Number(-dy) + "f));");

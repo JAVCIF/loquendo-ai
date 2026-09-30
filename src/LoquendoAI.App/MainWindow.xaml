@@ -972,7 +972,10 @@
                                     <TextBox x:Name="VisualOffsetXBox" Width="54" Height="25" Margin="5,0,10,0" Text="0" VerticalContentAlignment="Center" ToolTip="Píxeles; negativo mueve a la izquierda."/>
                                     <TextBlock Text="Mover Y:" VerticalAlignment="Center"/>
                                     <TextBox x:Name="VisualOffsetYBox" Width="54" Height="25" Margin="5,0,10,0" Text="0" VerticalContentAlignment="Center" ToolTip="Píxeles; negativo mueve hacia arriba."/>
-                                    <CheckBox x:Name="VisualFlipHorizontalCheck" Content="Invertir horizontal" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <CheckBox x:Name="VisualChangeDirectionCheck" Content="Cambiar dirección" VerticalAlignment="Center" Margin="0,0,10,0"
+                                              ToolTip="Mira hacia el otro lado sin moverse: la imagen se voltea sobre su propio centro."/>
+                                    <CheckBox x:Name="VisualFlipHorizontalCheck" Content="Invertir horizontal" VerticalAlignment="Center" Margin="0,0,10,0"
+                                              ToolTip="Espejo de la capa en el cuadro: pasa al lado contrario y mira hacia el otro lado."/>
                                     <CheckBox x:Name="VisualFlipVerticalCheck" Content="Invertir vertical" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                     <TextBlock Text="Rotación (°):" VerticalAlignment="Center"/>
                                     <TextBox x:Name="VisualRotationBox" Width="55" Height="25" Margin="5,0,0,0" Text="0" VerticalContentAlignment="Center"
