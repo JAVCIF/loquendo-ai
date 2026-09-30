@@ -1,4 +1,6 @@
 # Al subir una etiqueta vX.Y.Z crea el release con el instalador y la portable (scripts\publicar.ps1 -Instalador).
+# Al subir a main una versión nueva en Directory.Build.props (o un cambio de este flujo) publica esa versión si su
+# etiqueta todavía no existe: el release sale solo al cambiar el número de versión.
 # «Run workflow» (workflow_dispatch) compila los mismos paquetes y los deja como artefactos para probarlos; marcando
 # «publicar» también crea la etiqueta v<versión de Directory.Build.props> y el release sobre el commit elegido.
 name: Release
@@ -6,6 +8,8 @@ name: Release
 on:
   push:
     tags: ['v*']
+    branches: [main]
+    paths: ['Directory.Build.props', '.github/workflows/release.yml']
   workflow_dispatch:
     inputs:
       publicar:
@@ -17,8 +21,32 @@ permissions:
   contents: write
 
 jobs:
+  # En main: ¿la versión de Directory.Build.props ya tiene su etiqueta? Entonces no hay nada que publicar.
+  check:
+    name: ¿Versión nueva?
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+      publish: ${{ steps.check.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ] || [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; echo "publish=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          version=$(grep -oP '(?<=<Version>)[^<]+' Directory.Build.props | head -1)
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
+            echo "v$version ya está publicada."; echo "run=false" >> "$GITHUB_OUTPUT"; echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "v$version es nueva: se publica."; echo "run=true" >> "$GITHUB_OUTPUT"; echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
   publish:
     name: Instalador y portable
+    needs: check
+    if: needs.check.outputs.run == 'true'
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
@@ -97,7 +125,7 @@ jobs:
           retention-days: 14
 
       - name: Release en GitHub
-        if: startsWith(github.ref, 'refs/tags/') || inputs.publicar
+        if: startsWith(github.ref, 'refs/tags/') || inputs.publicar || needs.check.outputs.publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}

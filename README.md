@@ -286,9 +286,10 @@ Deja en `artifacts\` el `.exe` de un archivo, la carpeta portable con su `.zip` 
 FFmpeg (serie estable 8.1 fijada). Opciones: `-SinSTT`, `-SinFFmpeg`, `-FFmpegSerie 9.0` (otra serie de FFmpeg),
 `-DependeDeNet` (un `.exe` pequeño que necesita .NET instalado).
 
-**Releases automáticos**: al subir una etiqueta `vX.Y.Z` (o desde *Actions → Release → Run workflow* marcando
-«publicar»), GitHub Actions ejecuta `publicar.ps1 -Instalador` en Windows y publica el instalador y la portable en el
-release `v<versión de Directory.Build.props>`.
+**Releases automáticos**: al subir a `main` una versión nueva en `Directory.Build.props` (o una etiqueta `vX.Y.Z`,
+o desde *Actions → Release → Run workflow* marcando «publicar»), GitHub Actions ejecuta `publicar.ps1 -Instalador` en
+Windows y publica el instalador y la portable en el release `v<versión de Directory.Build.props>`. Si esa versión ya
+tiene release, no se vuelve a publicar.
 
 <details>
 <summary>Variables de entorno para ajustes avanzados</summary>
