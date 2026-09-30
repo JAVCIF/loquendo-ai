@@ -1,3 +1,7 @@
+## v1.4.5 — Arreglo del STT (Voces grabadas)
+- **La transcripción volvió a funcionar.** En la 1.4.4 todas las voces grabadas fallaban con «TypeError: open() got an unexpected keyword argument 'metadata_errors'»: el instalador del STT tomó PyAV 19, que quitó un argumento que faster-whisper todavía usa para abrir el audio. Ahora se instala PyAV 18 (`av<19`) y, por si una versión futura vuelve a cambiarlo, el worker reintenta abrir el audio sin ese argumento.
+- Para arreglar una instalación existente sin descargar de nuevo: `worker\python\python.exe -m pip install "av<19"` (portable) o volver a ejecutar `scripts\stt-setup.ps1`.
+
 ## v1.4.4 — Director más seguro al aplicar, borradores separados, ocultar varios a la vez y revisión de encuadre
 - **«Aplicar al guion» con reglas claras** (probadas una por una):
   - **Escena vacía**: el borrador la llena directamente, en cualquier modo.

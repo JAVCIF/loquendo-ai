@@ -29,6 +29,7 @@ def main() -> int:
         print("Falta faster-whisper. Ejecuta scripts\\stt-setup.ps1 para instalarlo en worker\\.venv.", file=sys.stderr)
         print(str(exc), file=sys.stderr)
         return 2
+    patch_av_open()
 
     def load(device: str):
         compute = args.compute if args.compute != "auto" else ("float16" if device == "cuda" else "int8")
@@ -105,6 +106,30 @@ def main() -> int:
         print(f"No se pudo iniciar STT local: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
     return 0
+
+
+def patch_av_open() -> None:
+    """faster-whisper 1.2 opens audio with av.open(..., metadata_errors="ignore"); PyAV 19 dropped that argument.
+    If the installed PyAV rejects it, retry without it instead of failing every file."""
+    try:
+        import av
+    except ImportError:
+        return
+    original = av.open
+    if getattr(original, "_loquendo_patched", False):
+        return
+
+    def open_compat(*args, **kwargs):
+        try:
+            return original(*args, **kwargs)
+        except TypeError as exc:
+            if "metadata_errors" not in kwargs or "metadata_errors" not in str(exc):
+                raise
+            kwargs.pop("metadata_errors")
+            return original(*args, **kwargs)
+
+    open_compat._loquendo_patched = True
+    av.open = open_compat
 
 
 def cuda_error(exc: Exception) -> bool:

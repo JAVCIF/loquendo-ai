@@ -1,1 +1,3 @@
 faster-whisper>=1.2,<2
+# PyAV 19 quitó el argumento metadata_errors que faster-whisper 1.2 todavía usa al abrir el audio.
+av>=11,<19
