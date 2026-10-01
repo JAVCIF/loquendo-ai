@@ -107,7 +107,8 @@ posición, personajes mucho más pequeños que los demás y props que casi no se
 - Cada línea puede usar una voz distinta. La lista de voces que aparece en los selectores se edita en Voice Lab.
 - Los audios generados se guardan en caché: la misma línea con la misma voz no se vuelve a sintetizar.
 - **Voces grabadas**: importa WAV de voces reales o de otros programas. La transcripción local (Whisper, sin
-  internet tras bajar el modelo) escribe el texto de cada toma y la incorpora a la escena. Funciona en CPU; con una
+  internet tras bajar el modelo) escribe el texto de cada toma y la incorpora a la escena seleccionada, sea cual sea
+  (también de otro capítulo); las tomas cargadas de una escena se actualizan en esa escena. Funciona en CPU; con una
   tarjeta NVIDIA, «Instalar soporte GPU» (≈1.3 GB, una sola vez) la hace mucho más rápida.
 
 ### Director e IA

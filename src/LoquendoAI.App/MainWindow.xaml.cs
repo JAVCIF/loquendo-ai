@@ -26,6 +26,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        // The version of the build (Directory.Build.props), the same one the release publishes.
+        AppVersionText.Text = "v" + (typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "?");
         RestoreWindowBounds();
         SourceInitialized += (_, _) => ThemeManager.ApplyTitleBar(this);
         InitializeVoiceLab();

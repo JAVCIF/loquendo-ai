@@ -29,17 +29,20 @@ public partial class MainWindow
         BlockParameters.Of(block).RecordedTake is not null;
 
     private readonly ObservableCollection<RecordedVoiceRow> _recordedVoices = [];
-    private Guid? _recordedVoiceSceneId;
     private LoquendoAI.Infrastructure.Persistence.SqliteProjectRepository? _recordedVoiceRepository;
     private CancellationTokenSource? _sttCancellation;
 
-    private void PrepareRecordedVoiceScene(SceneScriptRow scene)
+    /// <summary>
+    /// The takes table belongs to the project, not to a scene (1.4.6): WAVs added and transcribed while one scene was
+    /// selected can be incorporated into any other, of any chapter. Takes loaded from a scene («Cargar voces de la
+    /// escena») remember it and are updated there. Only another project empties the table.
+    /// </summary>
+    private void PrepareRecordedVoiceScene()
     {
-        if (_recordedVoiceSceneId != scene.Scene.Id || _recordedVoiceRepository != _currentRepository)
+        if (_recordedVoiceRepository != _currentRepository)
         {
             _recordedVoices.Clear();
             RecordedVoiceNotesBox.Clear();
-            _recordedVoiceSceneId = scene.Scene.Id;
             _recordedVoiceRepository = _currentRepository;
         }
         RecordedVoicesGrid.ItemsSource = _recordedVoices;
@@ -89,7 +92,7 @@ public partial class MainWindow
     private void AddRecordedVoices_Click(object sender, RoutedEventArgs e)
     {
         if (_sttCancellation is not null) return;
-        if (_currentRepository is null || ScenesList.SelectedItem is not SceneScriptRow selectedScene)
+        if (_currentRepository is null || ScenesList.SelectedItem is not SceneScriptRow)
         {
             RecordedVoiceStatusText.Text = "Selecciona primero un proyecto y una escena.";
             return;
@@ -101,7 +104,7 @@ public partial class MainWindow
             Multiselect = true
         };
         if (dialog.ShowDialog(this) != true) return;
-        PrepareRecordedVoiceScene(selectedScene);
+        PrepareRecordedVoiceScene();
         var detected = 0;
         foreach (var file in dialog.FileNames)
         {
@@ -142,7 +145,7 @@ public partial class MainWindow
         {
             var blocks = await repository.GetSceneScriptBlocksAsync(scene.Scene.Id);
             if (_currentRepository != repository || (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != scene.Scene.Id) return;
-            PrepareRecordedVoiceScene(scene);
+            PrepareRecordedVoiceScene();
             var count = 0;
             foreach (var block in blocks.Where(IsImportedVoice))
             {
@@ -158,7 +161,7 @@ public partial class MainWindow
                 var directVoice = DirectVoiceOf(block);
                 _recordedVoices.Add(new RecordedVoiceRow(path, GetWaveDurationMs(path))
                 {
-                    Order = _recordedVoices.Count + 1, ExistingBlockId = block.Id,
+                    Order = _recordedVoices.Count + 1, ExistingBlockId = block.Id, ExistingSceneId = scene.Scene.Id,
                     CharacterId = block.CharacterId,
                     CharacterName = _characters.FirstOrDefault(x => x.Id == block.CharacterId)?.Name ?? "Narrador",
                     ProfileId = block.VoiceProfileId, Direct = directVoice,
@@ -263,10 +266,9 @@ public partial class MainWindow
             RecordedVoiceStatusText.Text = "No hay tomas que transcribir; añade WAV o selecciona filas.";
             return;
         }
-        if (_currentRepository is null || _currentRepository != _recordedVoiceRepository ||
-            (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != _recordedVoiceSceneId)
+        if (_currentRepository is null || _currentRepository != _recordedVoiceRepository)
         {
-            RecordedVoiceStatusText.Text = "Selecciona la escena correspondiente a las tomas antes de transcribir.";
+            RecordedVoiceStatusText.Text = "Las tomas de la tabla son de otro proyecto: vuelve a añadirlas.";
             return;
         }
         using var cancellation = new CancellationTokenSource();
@@ -523,10 +525,14 @@ public partial class MainWindow
     private async void ImportRecordedVoices_Click(object sender, RoutedEventArgs e)
     {
         if (_sttCancellation is not null) return;
-        if (_currentRepository is null || ScenesList.SelectedItem is not SceneScriptRow scene || _recordedVoices.Count == 0 ||
-            _recordedVoiceSceneId != scene.Scene.Id || _recordedVoiceRepository != _currentRepository)
+        if (_currentRepository is null || ScenesList.SelectedItem is not SceneScriptRow scene || _recordedVoices.Count == 0)
         {
             RecordedVoiceStatusText.Text = "Selecciona una escena y añade al menos un WAV.";
+            return;
+        }
+        if (_recordedVoiceRepository != _currentRepository)
+        {
+            RecordedVoiceStatusText.Text = "Las tomas de la tabla son de otro proyecto: vuelve a añadirlas.";
             return;
         }
         var repository = _currentRepository;
@@ -541,10 +547,23 @@ public partial class MainWindow
             var original = (await repository.GetSceneScriptBlocksAsync(sceneId)).ToArray();
             var profileIds = (await repository.GetVoiceProfilesAsync()).Select(x => x.Id).ToHashSet();
             var additions = new List<SceneScriptBlock>();
-            var updates = _recordedVoices.Where(x => x.ExistingBlockId.HasValue)
+            // New WAVs go to the selected scene, whichever it is; loaded takes are updated in the scene they came from.
+            var updates = _recordedVoices.Where(x => x.ExistingBlockId.HasValue && (x.ExistingSceneId ?? sceneId) == sceneId)
                 .ToDictionary(x => x.ExistingBlockId!.Value);
             if (updates.Keys.Any(id => !original.Any(b => b.Id == id && IsImportedVoice(b))))
                 throw new InvalidOperationException("Una toma importada cambió en el guion. Carga de nuevo las voces de la escena.");
+            var elsewhere = new List<(Guid SceneId, SceneScriptBlock[] Blocks)>();
+            var updatedElsewhere = 0;
+            foreach (var group in _recordedVoices.Where(x => x.ExistingBlockId.HasValue && x.ExistingSceneId is Guid other && other != sceneId)
+                         .GroupBy(x => x.ExistingSceneId!.Value))
+            {
+                var rows = group.ToDictionary(x => x.ExistingBlockId!.Value);
+                var blocks = (await repository.GetSceneScriptBlocksAsync(group.Key)).ToArray();
+                if (rows.Keys.Any(id => !blocks.Any(b => b.Id == id && IsImportedVoice(b))))
+                    throw new InvalidOperationException("Una toma cargada de otra escena cambió en su guion. Cárgala de nuevo desde esa escena.");
+                elsewhere.Add((group.Key, blocks.Select(b => rows.TryGetValue(b.Id, out var row) ? UpdatedTake(b, row) : b).ToArray()));
+                updatedElsewhere += rows.Count;
+            }
             var targetFolder = Path.Combine(repository.ProjectRoot, "generated", "imported_voices", $"scene_{sceneId:N}");
             Directory.CreateDirectory(targetFolder);
             foreach (var row in _recordedVoices)
@@ -568,15 +587,10 @@ public partial class MainWindow
             }
             if (_currentRepository != repository || (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != sceneId)
                 throw new InvalidOperationException("La escena cambió durante la importación. Vuelve a intentarlo.");
-            var updatedBlocks = original.Select(block => updates.TryGetValue(block.Id, out var row)
-                ? block with
-                {
-                    // A take without speaker is narration, except an NPC dialogue line (1.4.0) that still has none.
-                    Kind = row.CharacterId is not null ? ScriptBlockKind.Dialogue
-                        : block.Kind == ScriptBlockKind.Dialogue && block.CharacterId is null ? ScriptBlockKind.Dialogue : ScriptBlockKind.Narration,
-                    CharacterId = row.CharacterId, Text = row.Transcript.Trim(), VoiceProfileId = row.ProfileId,
-                    ParametersJson = VoiceParameters(row, block.ParametersJson)
-                } : block).Concat(additions).ToArray();
+            var updatedBlocks = original.Select(block => updates.TryGetValue(block.Id, out var row) ? UpdatedTake(block, row) : block)
+                .Concat(additions).ToArray();
+            foreach (var (otherScene, blocks) in elsewhere)
+                await repository.ReplaceSceneScriptBlocksAsync(otherScene, blocks);
             await repository.ReplaceSceneScriptBlocksAsync(sceneId, updatedBlocks);
             copiedPaths.Clear(); // Los archivos ya pertenecen al guion guardado.
             if (!string.IsNullOrWhiteSpace(RecordedVoiceNotesBox.Text))
@@ -593,7 +607,9 @@ public partial class MainWindow
             _recordedVoices.Clear();
             await LoadBlocksAsync(sceneId);
             await RefreshSceneTimingAsync(_scriptBlocks);
-            RecordedVoiceStatusText.Text = $"{additions.Count} toma(s) añadidas y {updates.Count} actualizadas. El preview conserva los WAV importados.";
+            RecordedVoiceStatusText.Text = $"{additions.Count} toma(s) añadidas y {updates.Count} actualizadas" +
+                (updatedElsewhere > 0 ? $" ({updatedElsewhere} más actualizadas en su escena de origen)" : "") +
+                ". El preview conserva los WAV importados.";
         }
         catch (Exception ex)
         {
@@ -605,6 +621,16 @@ public partial class MainWindow
         finally { ImportRecordedVoicesButton.IsEnabled = true; }
     }
 
+
+    /// <summary>A loaded take with the table's speaker, text, voice and transcription.</summary>
+    private static SceneScriptBlock UpdatedTake(SceneScriptBlock block, RecordedVoiceRow row) => block with
+    {
+        // A take without speaker is narration, except an NPC dialogue line (1.4.0) that still has none.
+        Kind = row.CharacterId is not null ? ScriptBlockKind.Dialogue
+            : block.Kind == ScriptBlockKind.Dialogue && block.CharacterId is null ? ScriptBlockKind.Dialogue : ScriptBlockKind.Narration,
+        CharacterId = row.CharacterId, Text = row.Transcript.Trim(), VoiceProfileId = row.ProfileId,
+        ParametersJson = VoiceParameters(row, block.ParametersJson)
+    };
 
     private async void RegenerateImportedVoice_Click(object sender, RoutedEventArgs e)
     {
@@ -720,6 +746,8 @@ public sealed class RecordedVoiceRow(string path, long durationMs) : INotifyProp
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
     public Guid? ExistingBlockId { get; set; }
+    /// <summary>The scene of <see cref="ExistingBlockId"/>: a loaded take is updated there, whatever scene is selected.</summary>
+    public Guid? ExistingSceneId { get; set; }
     public int Order { get; set; }
     public string Path { get; } = path;
     public string FileName => System.IO.Path.GetFileName(Path);

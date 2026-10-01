@@ -1,4 +1,6 @@
-## v1.4.6 — Transcripción con GPU (NVIDIA)
+## v1.4.6 — Transcripción con GPU (NVIDIA), voces grabadas a cualquier escena y versión en la cabecera
+- **«Incorporar voces a la escena» funciona en cualquier escena**: la tabla de Voces grabadas ya no queda atada a la escena donde añadiste o transcribiste los WAV. Puedes transcribir con una escena seleccionada, crear otra (o ir a otro capítulo) e incorporarlas ahí. Las tomas cargadas con «Cargar voces de la escena» se siguen actualizando en su escena de origen. Solo cambiar de proyecto vacía la tabla.
+- **La versión bajo el nombre del programa** sale de la compilación, así siempre coincide con la del release (antes se quedó en v1.4.2).
 - **«Instalar soporte GPU»** en Voces grabadas: el portable trae el motor de Whisper con CUDA, pero no las librerías de NVIDIA que necesita (cuBLAS y cuDNN), por eso «cuda» fallaba con «cublas64_12.dll is not found». No van incluidas por su tamaño (≈1.3 GB de descarga, ≈1.8 GB en disco): el botón las descarga una sola vez, en las versiones exactas que pide el motor, en la carpeta de datos (`datos\soporte-gpu` en la portable, `%LOCALAPPDATA%\LoquendoAI\soporte-gpu` instalada): las versiones nuevas las conservan, como los modelos de Whisper. El botón desaparece cuando ya están.
 - **«cuda» sin soporte GPU** ya no falla toma por toma: antes de empezar ofrece instalarlo y, si aceptas, transcribe al terminar.
 - **«auto» sin soporte GPU** transcribe en CPU directamente (sin intentar la tarjeta) y, al terminar, recuerda que con el soporte GPU es mucho más rápido.

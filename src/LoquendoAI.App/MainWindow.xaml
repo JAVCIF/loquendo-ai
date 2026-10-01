@@ -23,7 +23,7 @@
                     </Border>
                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="Loquendo AI" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource Theme.HeaderBarText}"/>
-                        <TextBlock Text="v1.4.2" FontSize="11" Foreground="{DynamicResource Theme.HeaderBarMuted}"/>
+                        <TextBlock x:Name="AppVersionText" Text="v" FontSize="11" Foreground="{DynamicResource Theme.HeaderBarMuted}"/>
                     </StackPanel>
                 </StackPanel>
                 <ComboBox x:Name="ThemeCombo" DockPanel.Dock="Right" Width="120" Height="30" Margin="14,0,0,0" VerticalAlignment="Center"
