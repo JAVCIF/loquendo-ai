@@ -107,7 +107,8 @@ posición, personajes mucho más pequeños que los demás y props que casi no se
 - Cada línea puede usar una voz distinta. La lista de voces que aparece en los selectores se edita en Voice Lab.
 - Los audios generados se guardan en caché: la misma línea con la misma voz no se vuelve a sintetizar.
 - **Voces grabadas**: importa WAV de voces reales o de otros programas. La transcripción local (Whisper, sin
-  internet tras bajar el modelo) escribe el texto de cada toma y la incorpora a la escena.
+  internet tras bajar el modelo) escribe el texto de cada toma y la incorpora a la escena. Funciona en CPU; con una
+  tarjeta NVIDIA, «Instalar soporte GPU» (≈1.3 GB, una sola vez) la hace mucho más rápida.
 
 ### Director e IA
 
@@ -177,6 +178,7 @@ Más detalle en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | FFmpeg | Ya incluido | En `tools\ffmpeg`. Desde el código fuente, ponlo en el PATH. |
 | .NET 10 | Ya incluido | El `.exe` lleva .NET dentro. |
 | Python y faster-whisper | Ya incluidos | En `worker\python`, para la transcripción local. El modelo de Whisper se descarga la primera vez que transcribes. |
+| cuBLAS y cuDNN de NVIDIA | Opcional | Solo para transcribir con la tarjeta (equipo «cuda»). No vienen incluidos por su tamaño: el botón «Instalar soporte GPU» de Voces grabadas los descarga (≈1.3 GB de descarga, ≈1.8 GB en disco) en la carpeta de datos, así las versiones nuevas no los vuelven a bajar. |
 | VEGAS Pro | Opcional | Para terminar el video. Hay scripts para VEGAS 12–13 y 14 o superior. |
 | Ollama, o una clave de Gemini, Claude u OpenAI | Opcional | Solo para las funciones de IA. |
 
@@ -283,6 +285,7 @@ en el Director IA, importa tu catálogo para que la IA las use.
 | --- | --- | --- |
 | Configuración, claves cifradas, tema, `errores.log`, selector de voces | `%LOCALAPPDATA%\LoquendoAI\` | `datos\` junto al `.exe` |
 | Modelos de Whisper | caché de Hugging Face del usuario | `datos\modelos-stt\` |
+| Soporte GPU de la transcripción (cuBLAS/cuDNN, si lo instalas) | `%LOCALAPPDATA%\LoquendoAI\soporte-gpu\` | `datos\soporte-gpu\` |
 | Proyecto (base de datos, voces, MP4, exportaciones, copias, correcciones de encuadre) | la carpeta del proyecto | la carpeta del proyecto |
 | Tus recursos | donde estén: nunca se copian ni se modifican | igual |
 
@@ -355,6 +358,9 @@ docs/                         arquitectura, pruebas guiadas por versión e histo
   el ZIP completo, no solo `balcon.exe`, en `tools\balcon\`.
 - **La transcripción falla con un error de DLL.** Instala el «Microsoft Visual C++ 2015-2022 Redistributable (x64)».
   Desde el código fuente, la app ofrece instalar Python y faster-whisper la primera vez.
+- **La transcripción con «cuda» pide el soporte GPU o dice que falta `cublas64_12.dll`.** Pulsa «Instalar soporte GPU»
+  en Voces grabadas (o ejecuta `scripts\stt-setup.ps1 -Gpu`). Sin él, «auto» transcribe en CPU. Con el soporte
+  instalado, si sigue fallando, actualiza el controlador de NVIDIA.
 - **La preview no se genera.** Mira `errores.log` (ver [Dónde se guarda](#dónde-se-guarda-cada-cosa)). Desde el
   código fuente, comprueba `ffmpeg -version` en una consola.
 - **La IA dice «sin cuota» o «sin crédito».** El lote se detiene y conserva lo ya hecho. Revisa el saldo o el límite

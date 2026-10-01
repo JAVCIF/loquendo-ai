@@ -17,15 +17,23 @@
   instalador; la app lo ejecuta sola (preguntando antes) si falta. El modelo de Whisper se descarga la primera vez
   que se transcribe.
 
+  -Gpu agrega el soporte para tarjetas NVIDIA (worker\stt\requirements-gpu.txt: cuBLAS y cuDNN, ≈1.3 GB de descarga,
+  ≈1.8 GB en disco). No va en la versión publicada; lo instala el botón «Instalar soporte GPU» de Voces grabadas. Se
+  guarda en la carpeta de datos de la app (-GpuCarpeta; por defecto «datos\soporte-gpu» en la portable o
+  %LOCALAPPDATA%\LoquendoAI\soporte-gpu instalada), así una versión nueva no lo vuelve a descargar.
+
 .EXAMPLE
   .\scripts\stt-setup.ps1
   .\scripts\stt-setup.ps1 -Carpeta .\artifacts\LoquendoAI_v1.4.0_portable -Embebido -Cache .\artifacts\cache
+  .\scripts\stt-setup.ps1 -Gpu
 #>
 param(
     [string]$Carpeta,
     [switch]$Embebido,
     [string]$PythonVersion = '3.12.10',
-    [string]$Cache
+    [string]$Cache,
+    [switch]$Gpu,
+    [string]$GpuCarpeta
 )
 
 $ErrorActionPreference = 'Stop'
@@ -35,6 +43,13 @@ $ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest is many times fas
 $projectDir = if ($Carpeta) { (Resolve-Path $Carpeta).Path } else { (Resolve-Path (Join-Path $PSScriptRoot '..')).Path }
 $requirements = Join-Path $projectDir 'worker\stt\requirements.txt'
 if (-not (Test-Path $requirements)) { throw "No se encontró $requirements" }
+$requirementsGpu = Join-Path $projectDir 'worker\stt\requirements-gpu.txt'
+if ($Gpu -and -not (Test-Path $requirementsGpu)) { throw "No se encontró $requirementsGpu" }
+if ($Gpu -and -not $GpuCarpeta) {
+    # Same data folder as the app (AppPaths): «datos» next to a portable .exe, %LOCALAPPDATA%\LoquendoAI when installed.
+    $GpuCarpeta = if (Test-Path (Join-Path $projectDir 'portable.txt')) { Join-Path $projectDir 'datos\soporte-gpu' }
+        else { Join-Path $env:LOCALAPPDATA 'LoquendoAI\soporte-gpu' }
+}
 $embedded = Join-Path $projectDir 'worker\python'
 $embeddedExe = Join-Path $embedded 'python.exe'
 $venv = Join-Path $projectDir 'worker\.venv'
@@ -108,6 +123,22 @@ function InstallRequirements([string]$python) {
     return (Native $python @('-c', 'import faster_whisper'))
 }
 
+function InstallGpu([string]$python) {
+    Write-Host 'Instalando el soporte GPU de NVIDIA (cuBLAS y cuDNN, ≈1.3 GB; puede tardar bastante)…'
+    New-Item -ItemType Directory -Force -Path $GpuCarpeta | Out-Null
+    # --target: in the data folder, not in worker\python, so a new version of the app keeps it.
+    # --no-cache-dir: a copy of 1.3 GB in pip's cache would only take disk space.
+    if (-not (Native $python @('-m', 'pip', 'install', '--no-warn-script-location', '--disable-pip-version-check', '--no-cache-dir',
+            '--upgrade', '--target', $GpuCarpeta, '-r', $requirementsGpu))) {
+        throw 'No se pudo instalar el soporte GPU (revisa la conexión a internet y que haya ≈2 GB libres en disco).'
+    }
+    if (-not ((Test-Path (Join-Path $GpuCarpeta 'nvidia\cublas\bin\cublas64_12.dll')) -and
+              (Test-Path (Join-Path $GpuCarpeta 'nvidia\cudnn\bin\cudnn_ops64_9.dll')))) {
+        throw 'El soporte GPU se descargó pero no aparecen sus DLL (cuBLAS/cuDNN).'
+    }
+    Write-Host "Soporte GPU listo ($GpuCarpeta)."
+}
+
 $python = $null
 if (Test-Path $embeddedExe) {
     # A Python left half-way (an old cancelled install) is replaced.
@@ -134,10 +165,14 @@ if (-not (InstallRequirements $python)) {
         Write-Host 'El Python del sistema no pudo instalar faster-whisper; se usa el Python embebido.'
         InstallEmbedded
         $python = $embeddedExe
-        if (InstallRequirements $python) { Write-Host "Transcripción local lista ($python)."; exit 0 }
+        if (InstallRequirements $python) {
+            if ($Gpu) { InstallGpu $python }
+            Write-Host "Transcripción local lista ($python)."; exit 0
+        }
     }
     throw 'No se pudo instalar faster-whisper (revisa la conexión a internet). Si el error menciona una DLL, instala ' +
         '«Microsoft Visual C++ 2015-2022 Redistributable (x64)».'
 }
+if ($Gpu) { InstallGpu $python }
 Write-Host "Transcripción local lista ($python)."
 exit 0

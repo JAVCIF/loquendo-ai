@@ -1,3 +1,10 @@
+## v1.4.6 — Transcripción con GPU (NVIDIA)
+- **«Instalar soporte GPU»** en Voces grabadas: el portable trae el motor de Whisper con CUDA, pero no las librerías de NVIDIA que necesita (cuBLAS y cuDNN), por eso «cuda» fallaba con «cublas64_12.dll is not found». No van incluidas por su tamaño (≈1.3 GB de descarga, ≈1.8 GB en disco): el botón las descarga una sola vez, en las versiones exactas que pide el motor, en la carpeta de datos (`datos\soporte-gpu` en la portable, `%LOCALAPPDATA%\LoquendoAI\soporte-gpu` instalada): las versiones nuevas las conservan, como los modelos de Whisper. El botón desaparece cuando ya están.
+- **«cuda» sin soporte GPU** ya no falla toma por toma: antes de empezar ofrece instalarlo y, si aceptas, transcribe al terminar.
+- **«auto» sin soporte GPU** transcribe en CPU directamente (sin intentar la tarjeta) y, al terminar, recuerda que con el soporte GPU es mucho más rápido.
+- Con «cuda», un error de la tarjeta a mitad del lote lo detiene con ese error en vez de repetirlo en cada toma.
+- `scripts\stt-setup.ps1 -Gpu` instala lo mismo desde una consola. CTranslate2 queda fijo en 4.8.2 para que su cuDNN coincida con el que se descarga.
+
 ## v1.4.5 — Arreglo del STT (Voces grabadas)
 - **La transcripción volvió a funcionar.** En la 1.4.4 todas las voces grabadas fallaban con «TypeError: open() got an unexpected keyword argument 'metadata_errors'»: el instalador del STT tomó PyAV 19, que quitó un argumento que faster-whisper todavía usa para abrir el audio. Ahora se instala PyAV 18 (`av<19`) y, por si una versión futura vuelve a cambiarlo, el worker reintenta abrir el audio sin ese argumento.
 - Para arreglar una instalación existente sin descargar de nuevo: `worker\python\python.exe -m pip install "av<19"` (portable) o volver a ejecutar `scripts\stt-setup.ps1`.

@@ -43,6 +43,7 @@ pon el tuyo en el PATH.
 | --- | --- | --- | --- |
 | Modelos Whisper convertidos a CTranslate2 (tiny … large-v3) | La primera vez que transcribes con cada modelo, desde Hugging Face | MIT (modelos Whisper de OpenAI) | <https://huggingface.co/Systran> · <https://github.com/openai/whisper> |
 | Python embebido, get-pip y faster-whisper | Solo si la transcripción no viene incluida (compilación con `-SinSTT` o desde el código) y aceptas instalarla | ver arriba | <https://www.python.org> · <https://bootstrap.pypa.io> · <https://pypi.org> |
+| NVIDIA cuBLAS y cuDNN (`nvidia-cublas-cu12`, `nvidia-cudnn-cu12`) | Solo si pulsas «Instalar soporte GPU» (transcripción con tarjeta NVIDIA), desde PyPI | Licencias propietarias de NVIDIA (CUDA Toolkit EULA, cuDNN SLA); no se redistribuyen con Loquendo AI | <https://pypi.org/project/nvidia-cublas-cu12/> · <https://pypi.org/project/nvidia-cudnn-cu12/> |
 
 ## No incluido: lo instala cada usuario
 

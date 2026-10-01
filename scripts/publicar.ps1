@@ -99,7 +99,7 @@ Get-ChildItem (Join-Path $work 'app') -Exclude 'LoquendoAI.App.exe', '*.pdb' | C
 Copy-Item (Join-Path $work 'tts-bridge') (Join-Path $portable 'tts-bridge') -Recurse -Force
 
 New-Item -ItemType Directory -Force -Path (Join-Path $portable 'worker\stt'), (Join-Path $portable 'scripts\vegas'), (Join-Path $portable 'tools\balcon') | Out-Null
-Copy-Item '.\worker\stt\transcribe.py', '.\worker\stt\requirements.txt' (Join-Path $portable 'worker\stt') -Force
+Copy-Item '.\worker\stt\transcribe.py', '.\worker\stt\requirements.txt', '.\worker\stt\requirements-gpu.txt' (Join-Path $portable 'worker\stt') -Force
 Copy-Item '.\scripts\stt-setup.ps1' (Join-Path $portable 'scripts') -Force
 Copy-Item '.\scripts\vegas\*.cs' (Join-Path $portable 'scripts\vegas') -Force
 Copy-Item '.\tools\balcon\README.txt' (Join-Path $portable 'tools\balcon') -Force

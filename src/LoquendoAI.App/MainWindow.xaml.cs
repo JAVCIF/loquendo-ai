@@ -31,6 +31,7 @@ public partial class MainWindow : Window
         InitializeVoiceLab();
         InitializeScriptEditor();
         InitializeDialogues();
+        UpdateGpuSupportButton();
     }
 
     private async void CreateProject_Click(object sender, RoutedEventArgs e)

@@ -9,6 +9,9 @@ from pathlib import Path
 
 MODELS = ("tiny", "base", "small", "medium", "large-v3", "large-v3-turbo")
 DOUBTFUL = 0.5  # word probability below which the app asks to check the word
+GPU_MISSING = 3  # exit code: --device cuda without the NVIDIA libraries (the app offers «Instalar soporte GPU»)
+# What CTranslate2 loads on demand on Windows (it brings only the base cudnn64_9.dll), in dependency order.
+GPU_LIBRARIES = ("cublasLt64_12.dll", "cublas64_12.dll", "cudnn_graph64_9.dll", "cudnn_ops64_9.dll", "cudnn_cnn64_9.dll")
 
 
 def main() -> int:
@@ -21,6 +24,7 @@ def main() -> int:
                         help="auto: float16 on GPU (int8_float16 if the GPU lacks float16), int8 on CPU")
     parser.add_argument("--hint", default="", help="Names and words to expect (initial prompt), e.g. character names")
     parser.add_argument("--words", action="store_true", help="Return word timestamps and probabilities")
+    parser.add_argument("--gpu-dir", default="", help="Folder of «Instalar soporte GPU» (pip --target with cuBLAS/cuDNN)")
     args = parser.parse_args()
 
     try:
@@ -30,6 +34,13 @@ def main() -> int:
         print(str(exc), file=sys.stderr)
         return 2
     patch_av_open()
+    gpu = prepare_gpu(args.gpu_dir) if args.device != "cpu" else None
+    if gpu is False:
+        if args.device == "cuda":
+            print("Falta el soporte GPU (cuBLAS/cuDNN de NVIDIA) de la transcripción local. Instálalo con «Instalar soporte GPU» "
+                  "o elige «auto» o «cpu».", file=sys.stderr, flush=True)
+            return GPU_MISSING
+        print("Sin soporte GPU instalado (cuBLAS/cuDNN); transcribiendo en CPU.", file=sys.stderr, flush=True)
 
     def load(device: str):
         compute = args.compute if args.compute != "auto" else ("float16" if device == "cuda" else "int8")
@@ -46,7 +57,7 @@ def main() -> int:
     hint = " ".join(args.hint.split())[:600] or None
 
     try:
-        selected_device = "cuda" if args.device in ("auto", "cuda") else "cpu"
+        selected_device = "cuda" if args.device == "cuda" or (args.device == "auto" and gpu is not False) else "cpu"
         try:
             model, compute = load(selected_device)
         except Exception as exc:
@@ -99,13 +110,47 @@ def main() -> int:
                     "speechEnd": words[-1]["end"] if words else None,
                 }
             except Exception as exc:
+                if selected_device == "cuda" and cuda_error(exc):
+                    raise  # the same GPU error would repeat for every file: stop the batch with it
                 result = {"index": index, "text": "", "language": None, "device": selected_device,
                           "error": f"{type(exc).__name__}: {exc}"}
             print(json.dumps(result, ensure_ascii=False), flush=True)
     except Exception as exc:
-        print(f"No se pudo iniciar STT local: {type(exc).__name__}: {exc}", file=sys.stderr)
+        print(f"STT local detenido: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
     return 0
+
+
+def prepare_gpu(gpu_dir: str = "") -> bool | None:
+    """Windows: puts the NVIDIA libraries of «Instalar soporte GPU» (pip packages nvidia-cublas-cu12 and
+    nvidia-cudnn-cu12 in <gpu_dir>\\nvidia\\*\\bin, kept in the app's data folder so updates keep them; also looked
+    for in site-packages) on the DLL search path and loads them, so CTranslate2 finds them when it needs them. A CUDA
+    toolkit/cuDNN already on PATH works too. False when they are not there; None off Windows (not checked)."""
+    if sys.platform != "win32":
+        return None
+    import ctypes
+    import os
+
+    folders = []
+    for base in ([gpu_dir] if gpu_dir else []) + sys.path:
+        for name in ("cublas", "cudnn"):
+            folder = Path(base or ".") / "nvidia" / name / "bin"
+            if folder.is_dir() and str(folder.resolve()) not in folders:
+                folders.append(str(folder.resolve()))
+    if folders:
+        os.environ["PATH"] = os.pathsep.join(folders + [os.environ.get("PATH", "")])
+        for folder in folders:
+            try:
+                os.add_dll_directory(folder)
+            except OSError:
+                pass
+    try:
+        for library in GPU_LIBRARIES:
+            ctypes.CDLL(library, winmode=0)  # winmode=0: the classic search, PATH included
+    except OSError as exc:
+        print(f"Soporte GPU no disponible: {exc}", file=sys.stderr, flush=True)
+        return False
+    return True
 
 
 def patch_av_open() -> None:

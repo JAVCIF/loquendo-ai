@@ -1,0 +1,5 @@
+# Soporte GPU (NVIDIA) de la transcripción local: lo instala «Instalar soporte GPU» (scripts\stt-setup.ps1 -Gpu).
+# ≈1.3 GB de descarga, ≈1.8 GB en disco. CTranslate2 4.8.2 está compilado con CUDA 12.8 y trae el cuDNN 9.10.2.21
+# base (cudnn64_9.dll); los módulos de cuDNN deben ser exactamente de esa versión.
+nvidia-cublas-cu12==12.8.4.1
+nvidia-cudnn-cu12==9.10.2.21

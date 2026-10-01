@@ -19,6 +19,9 @@ public sealed record LocalTranscriptionResult(int Index, string? Text, string? L
 /// <summary>The local transcription is not installed (no Python found, or faster-whisper missing).</summary>
 public sealed class SttNotInstalledException(string message) : Exception(message);
 
+/// <summary>«cuda» was chosen but the NVIDIA libraries (cuBLAS/cuDNN) are not installed: «Instalar soporte GPU».</summary>
+public sealed class SttGpuMissingException(string message) : Exception(message);
+
 public static class LocalTranscriptionClient
 {
     /// <summary>The Python the app uses, in the same order as scripts\stt-setup.ps1: the embedded one that the
@@ -34,11 +37,26 @@ public static class LocalTranscriptionClient
 
     public static bool IsInstalled => FindPython() is not null;
 
+    /// <summary>Size of «Instalar soporte GPU» (worker\stt\requirements-gpu.txt), for the questions.</summary>
+    public const string GpuSupportSize = "≈1.3 GB de descarga, ≈1.8 GB en disco";
+
+    /// <summary>Where «Instalar soporte GPU» puts cuBLAS/cuDNN (1.4.6): the app's data folder («datos\soporte-gpu» in
+    /// the portable version), not worker\python, so a new version of the app does not download them again.</summary>
+    public static string GpuSupportFolder => AppPaths.PathOf("soporte-gpu");
+
+    /// <summary>The NVIDIA libraries of «Instalar soporte GPU» are there. A CUDA toolkit installed on the PC also works
+    /// for transcribe.py, but is not counted here.</summary>
+    public static bool GpuSupportInstalled =>
+        OperatingSystem.IsWindows() &&
+        File.Exists(Path.Combine(GpuSupportFolder, "nvidia", "cublas", "bin", "cublas64_12.dll")) &&
+        File.Exists(Path.Combine(GpuSupportFolder, "nvidia", "cudnn", "bin", "cudnn_ops64_9.dll"));
+
     /// <summary>
     /// Installs the local transcription with scripts\stt-setup.ps1 (1.4.0): the system Python in a venv, or the
     /// official embedded Python when the PC has none. Each line the script prints goes to <paramref name="progress"/>.
+    /// <paramref name="gpu"/> also installs the NVIDIA support (stt-setup.ps1 -Gpu).
     /// </summary>
-    public static async Task InstallAsync(Action<string> progress, CancellationToken cancellationToken)
+    public static async Task InstallAsync(Action<string> progress, CancellationToken cancellationToken, bool gpu = false)
     {
         var root = FindApplicationRoot();
         var script = Path.Combine(root, "scripts", "stt-setup.ps1");
@@ -51,7 +69,8 @@ public static class LocalTranscriptionClient
             WorkingDirectory = root
         };
         foreach (var argument in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
-                     "[Console]::OutputEncoding = [Text.Encoding]::UTF8; & '" + script.Replace("'", "''") + "'; exit $LASTEXITCODE" })
+                     "[Console]::OutputEncoding = [Text.Encoding]::UTF8; & '" + script.Replace("'", "''") + "'" +
+                     (gpu ? " -Gpu -GpuCarpeta '" + GpuSupportFolder.Replace("'", "''") + "'" : "") + "; exit $LASTEXITCODE" })
             start.ArgumentList.Add(argument);
         using var process = new Process { StartInfo = start, EnableRaisingEvents = true };
         var errors = new StringBuilder();
@@ -72,11 +91,11 @@ public static class LocalTranscriptionClient
             throw;
         }
         process.WaitForExit(); // flush the redirected output
-        if (process.ExitCode != 0 || !IsInstalled)
+        if (process.ExitCode != 0 || !IsInstalled || (gpu && !GpuSupportInstalled))
         {
             string text;
             lock (errors) text = errors.ToString().Trim();
-            throw new InvalidOperationException("No se pudo instalar la transcripción local" +
+            throw new InvalidOperationException((gpu ? "No se pudo instalar el soporte GPU" : "No se pudo instalar la transcripción local") +
                 (text.Length > 0 ? ": " + (text.Length > 1200 ? text[^1200..] : text) : " (revisa la conexión a internet)."));
         }
     }
@@ -113,6 +132,7 @@ public static class LocalTranscriptionClient
         }
         if (!string.IsNullOrWhiteSpace(hint)) { start.ArgumentList.Add("--hint"); start.ArgumentList.Add(hint); }
         if (wordTimestamps) start.ArgumentList.Add("--words");
+        start.ArgumentList.Add("--gpu-dir"); start.ArgumentList.Add(GpuSupportFolder);
         foreach (var path in wavPaths)
         {
             start.ArgumentList.Add("--file");
@@ -144,6 +164,9 @@ public static class LocalTranscriptionClient
             // transcribe.py exits with 2 when faster-whisper cannot be imported (half-installed environment).
             if (process.ExitCode == 2 && received.Count == 0)
                 throw new SttNotInstalledException("Falta faster-whisper en el Python de la transcripción local.");
+            // 3: «cuda» without cuBLAS/cuDNN (checked before loading the model, so nothing was transcribed).
+            if (process.ExitCode == 3 && received.Count == 0)
+                throw new SttGpuMissingException("Falta el soporte GPU (cuBLAS/cuDNN de NVIDIA) de la transcripción local.");
             if (process.ExitCode != 0)
                 throw new InvalidOperationException("El transcriptor local falló: " +
                     (diagnostics.Length > 1200 ? diagnostics[^1200..] : diagnostics));

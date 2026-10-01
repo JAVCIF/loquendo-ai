@@ -271,12 +271,9 @@ public partial class MainWindow
         }
         using var cancellation = new CancellationTokenSource();
         _sttCancellation = cancellation;
-        CancelTranscriptionButton.IsEnabled = true;
-        TranscribePendingButton.IsEnabled = false;
-        TranscribeSelectedButton.IsEnabled = false;
-        ImportRecordedVoicesButton.IsEnabled = false;
-        RecordedVoicesGrid.IsReadOnly = true;
+        SetSttBusy(true);
         var completed = 0;
+        var onCpu = false;
         try
         {
             string Option(ComboBox combo) => (combo.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "auto";
@@ -289,6 +286,7 @@ public partial class MainWindow
                 {
                     var row = rows[result.Index];
                     completed++;
+                    onCpu |= result.Device == "cpu";
                     if (string.IsNullOrWhiteSpace(result.Error))
                     {
                         row.Transcript = result.Text ?? "";
@@ -312,7 +310,16 @@ public partial class MainWindow
                 RecordedVoiceStatusText.Text = $"Cargando STT local y transcribiendo {rows.Length} toma(s)…";
                 await Transcribe();
             }
-            RecordedVoiceStatusText.Text = $"STT finalizado ({completed}/{rows.Length}). Revisa el texto y pulsa Incorporar voces a la escena.";
+            catch (SttGpuMissingException) when (completed == 0)
+            {
+                // «cuda» chosen without cuBLAS/cuDNN: offer to install them and try once more.
+                if (!await InstallGpuSupportAsync(cancellation.Token, cudaChosen: true)) return;
+                RecordedVoiceStatusText.Text = $"Cargando STT local y transcribiendo {rows.Length} toma(s)…";
+                await Transcribe();
+            }
+            RecordedVoiceStatusText.Text = $"STT finalizado ({completed}/{rows.Length}). Revisa el texto y pulsa Incorporar voces a la escena." +
+                (onCpu && Option(SttDeviceCombo) == "auto" && OperatingSystem.IsWindows() && !LocalTranscriptionClient.GpuSupportInstalled
+                    ? " Se transcribió en CPU: con una tarjeta NVIDIA, «Instalar soporte GPU» lo hace mucho más rápido." : "");
         }
         catch (OperationCanceledException)
         {
@@ -325,12 +332,74 @@ public partial class MainWindow
         finally
         {
             _sttCancellation = null;
-            CancelTranscriptionButton.IsEnabled = false;
-            TranscribePendingButton.IsEnabled = true;
-            TranscribeSelectedButton.IsEnabled = true;
-            ImportRecordedVoicesButton.IsEnabled = true;
-            RecordedVoicesGrid.IsReadOnly = false;
+            SetSttBusy(false);
         }
+    }
+
+    /// <summary>While transcribing or installing, only «Cancelar STT» is available.</summary>
+    private void SetSttBusy(bool busy)
+    {
+        CancelTranscriptionButton.IsEnabled = busy;
+        TranscribePendingButton.IsEnabled = !busy;
+        TranscribeSelectedButton.IsEnabled = !busy;
+        ImportRecordedVoicesButton.IsEnabled = !busy;
+        InstallGpuSupportButton.IsEnabled = !busy;
+        RecordedVoicesGrid.IsReadOnly = busy;
+    }
+
+    /// <summary>«Instalar soporte GPU» only shows while it is missing (Windows).</summary>
+    private void UpdateGpuSupportButton() =>
+        InstallGpuSupportButton.Visibility = OperatingSystem.IsWindows() && !LocalTranscriptionClient.GpuSupportInstalled
+            ? Visibility.Visible : Visibility.Collapsed;
+
+    private async void InstallGpuSupport_Click(object sender, RoutedEventArgs e)
+    {
+        if (_sttCancellation is not null) return;
+        using var cancellation = new CancellationTokenSource();
+        _sttCancellation = cancellation;
+        SetSttBusy(true);
+        try { await InstallGpuSupportAsync(cancellation.Token, cudaChosen: false); }
+        catch (OperationCanceledException) { RecordedVoiceStatusText.Text = "Instalación del soporte GPU cancelada."; }
+        catch (Exception ex) { RecordedVoiceStatusText.Text = ex.Message; }
+        finally
+        {
+            _sttCancellation = null;
+            SetSttBusy(false);
+        }
+    }
+
+    /// <summary>
+    /// The NVIDIA libraries for «cuda» (1.4.6): not in the published version because of their size, installed here after
+    /// asking (scripts\stt-setup.ps1 -Gpu). Also installs the transcription itself if it is missing.
+    /// </summary>
+    private async Task<bool> InstallGpuSupportAsync(CancellationToken token, bool cudaChosen)
+    {
+        if (MessageBox.Show(this,
+                (cudaChosen ? "Elegiste «cuda», pero falta el soporte GPU: las librerías de NVIDIA (cuBLAS y cuDNN) con las que " +
+                              "la transcripción usa la tarjeta.\n\n" : "") +
+                $"¿Instalar el soporte GPU ahora? Se descarga una sola vez ({LocalTranscriptionClient.GpuSupportSize}) en la carpeta de datos " +
+                "del programa, así las versiones nuevas lo conservan. " +
+                "Necesitas una tarjeta NVIDIA con el controlador al día.\n\nSin esto, «auto» transcribe en CPU (más lento).",
+                "Soporte GPU", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes) != MessageBoxResult.Yes)
+        {
+            RecordedVoiceStatusText.Text = cudaChosen
+                ? "Sin soporte GPU: elige «auto» o «cpu» en Equipo, o pulsa «Instalar soporte GPU»."
+                : "Soporte GPU sin instalar.";
+            return false;
+        }
+        RecordedVoiceStatusText.Text = "Instalando el soporte GPU…";
+        var installing = true;
+        try
+        {
+            await LocalTranscriptionClient.InstallAsync(line => _ = Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (installing) RecordedVoiceStatusText.Text = "Instalando el soporte GPU · " + line;
+            })), token, gpu: true);
+        }
+        finally { installing = false; }
+        UpdateGpuSupportButton();
+        RecordedVoiceStatusText.Text = "Soporte GPU instalado.";
+        return true;
     }
 
     /// <summary>
