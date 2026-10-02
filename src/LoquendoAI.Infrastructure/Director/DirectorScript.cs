@@ -400,6 +400,8 @@ public static class DirectorScript
         "BORDES" => kind == ScriptBlockKind.Background,
         "CAPA" or "CROMA" or "COLOR" or "TOLERANCIA" => kind == ScriptBlockKind.Video,
         "MODO AUDIO" => kind is ScriptBlockKind.Narration or ScriptBlockKind.SoundEffect or ScriptBlockKind.Music,
+        // «escala=130» (1.4.7): the render 30 % bigger than the automatic framing (or its box) gives it.
+        "ESCALA" => kind == ScriptBlockKind.CharacterShow,
         _ => false
     };
 
@@ -407,6 +409,8 @@ public static class DirectorScript
     {
         // Up to 3× the frame: only backgrounds use more than 1280×720 (zoom, 1.4.0); other visuals are capped to the frame.
         "ANCHO" => int.TryParse(value, out var w) && w is >= 64 and <= 3840,
+        "ESCALA" => int.TryParse(value.TrimEnd('%').Trim(), out var scale) &&
+            scale >= BlockParameters.ScaleMin * 100 && scale <= BlockParameters.ScaleMax * 100,
         "ZOOM" => ParseZoom(value) is >= 1 and <= BlockDefaults.BackgroundZoomMax, // [FONDO] only (DirectorOptionAllowed)
         "ALTO" => int.TryParse(value, out var h) && h is >= 64 and <= 2160,
         "X" => int.TryParse(value, out var x) && x is >= -1280 and <= 1280,
@@ -533,6 +537,8 @@ public static class DirectorScript
             MotionRotationDegrees = double.TryParse(Get("ANIMAR GIRO"), NumberStyles.Float,
                 CultureInfo.InvariantCulture, out var spin) ? spin : 0,
             MotionDurationMs = Long("ANIMAR MS") ?? 0,
+            Scale = kind == ScriptBlockKind.CharacterShow && int.TryParse(Get("ESCALA")?.TrimEnd('%').Trim(), out var percent) && percent != 100
+                ? percent / 100d : null,
             AutoTrimBorders = Flag("BORDES") ?? true,
             VideoLayer = NormalizeDirectorName(Get("CAPA") ?? "guion") switch
             {

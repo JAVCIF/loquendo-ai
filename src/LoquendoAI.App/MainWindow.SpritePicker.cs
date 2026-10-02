@@ -111,7 +111,8 @@ public partial class MainWindow
             FolderSourceId = folder?.SourceId,
             FolderRelativePath = folder?.RelativePath,
             IncludeSubfolders = SpriteSubfoldersCheck.IsChecked == true,
-            VisualDurationMs = long.TryParse(VisualDurationBox.Text.Trim(), out var duration) ? duration : null
+            VisualDurationMs = long.TryParse(VisualDurationBox.Text.Trim(), out var duration) ? duration : null,
+            Scale = EditorRenderScale() is double scale && scale != 1 ? scale : null
         }).ToJson();
     }
 

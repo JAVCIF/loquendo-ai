@@ -87,16 +87,22 @@ tiempo de cada uno se calcula solo.
 | Comentario | Notas de dirección que no salen en el video. |
 
 **Revisar encuadre** (junto a ▶ en la Preview) busca renders que terminan fuera del cuadro por su animación o su
-posición, personajes mucho más pequeños que los demás y props que casi no se ven:
+posición, personajes pequeños, props que casi no se ven e imágenes sin transparencia:
 
 - «Limitar al cuadro» conserva el movimiento (un empujón, una pelea) y solo lo acorta. «Era una entrada» (en la
   primera aparición) lo hace entrar desde fuera. Una salida justo antes de ocultarse se respeta.
-- Los tamaños se igualan por la altura visible de cada render, sin contar el borde transparente. Los renders muy
-  anchos (sentados, con muebles) se ajustan con margen, y el porcentaje de cada ajuste se puede cambiar.
+- Un personaje se ve pequeño si su cuerpo (lo opaco, sin bordes transparentes ni velos casi invisibles) mide menos
+  del 60 % del alto del cuadro, o bastante menos que quien está a su lado en ese momento. Vale con 1 a 4 personajes en
+  pantalla, también si todos quedaron pequeños. Los renders muy anchos (sentados, con muebles) tienen más margen.
+- La corrección es la «Escala» del render, que agranda también lo que da el encuadre automático (puede salir un poco
+  de su carril). El porcentaje de cada ajuste se puede cambiar.
+- El encuadre automático reparte el ancho entre los personajes que están a la vez; un cruce entre dos renders del
+  mismo personaje cuenta como uno.
 - Cada escena recuerda lo corregido: al volver se puede cambiar de corrección, deshacerla o marcar «es a propósito».
   Si editas el bloque o cambias el render, se revisa de nuevo.
-- En el Editor, «⤢ Ajustar al cuadro» corrige los campos del bloque abierto antes de guardar, y «Escala %» agranda o
-  achica ancho y alto a la vez.
+- En el Editor, «⤢ Ajustar al cuadro» corrige los campos del bloque abierto antes de guardar. «Escala %» es la escala
+  del render (se guarda con el bloque; en el Director, `escala=130`); en los demás visuales agranda o achica ancho y
+  alto a la vez.
 
 ### Voces
 

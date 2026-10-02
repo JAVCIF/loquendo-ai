@@ -209,6 +209,7 @@ public partial class MainWindow
             notes.Add($"{issue.Message} → {fix.Label.ToLowerInvariant()}");
         }
         var transform = result.Transform(kind);
+        if (kind == ScriptBlockKind.CharacterShow) EditorScaleBox.Text = ScalePercentText(result.ScaleFactor(kind));
         VisualWidthBox.Text = transform.MaxWidth.ToString(CultureInfo.InvariantCulture);
         VisualHeightBox.Text = transform.MaxHeight.ToString(CultureInfo.InvariantCulture);
         // The fields hold the block's own values: «Invertir horizontal» mirrors them only when the scene is planned.
@@ -224,10 +225,25 @@ public partial class MainWindow
         ScriptStatusText.Text = "Ajustado: " + string.Join("; ", notes) + ". Revisa los campos y guarda el bloque.";
     }
 
-    /// <summary>«Escala %» of the editor: width and height of the visual times the percentage, within its limits.</summary>
+    /// <summary>«Escala %» of a render (1.4.7): kept with the block, it enlarges what the automatic framing gives too.</summary>
+    private double? EditorRenderScale() =>
+        double.TryParse(EditorScaleBox.Text.Trim().TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out var percent) &&
+        percent >= BlockParameters.ScaleMin * 100 && percent <= BlockParameters.ScaleMax * 100 ? Math.Round(percent / 100, 3) : null;
+
+    private static string ScalePercentText(double scale) => Math.Round(scale * 100).ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>«Escala %» of the editor. A render: its «Escala», saved with the block. Other visuals: width and height
+    /// times the percentage, within their limits.</summary>
     private void ApplyEditorScale_Click(object sender, RoutedEventArgs e)
     {
         var kind = CurrentEditorKind;
+        if (kind == ScriptBlockKind.CharacterShow)
+        {
+            ScriptStatusText.Text = EditorRenderScale() is double scale
+                ? $"Escala del render: {ScalePercentText(scale)} % de su tamaño (también con encuadre automático). Guarda el bloque para aplicarla."
+                : $"Escala: un porcentaje entre {BlockParameters.ScaleMin * 100:0} y {BlockParameters.ScaleMax * 100:0} (100 = tamaño normal).";
+            return;
+        }
         if (!double.TryParse(EditorScaleBox.Text.Trim().TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out var percent) ||
             percent is < 10 or > 500 ||
             !int.TryParse(VisualWidthBox.Text.Trim(), out var width) || !int.TryParse(VisualHeightBox.Text.Trim(), out var height))

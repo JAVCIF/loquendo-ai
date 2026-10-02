@@ -16,7 +16,7 @@ public sealed record SceneMedia(Guid BlockId, ScriptBlockKind Kind, long StartMs
     string VegasTransitionPreset = "", bool CutVideo = false,
     int VolumePercent = 100, bool HasVideoAudio = false,
     int MotionOffsetX = 0, int MotionOffsetY = 0, double MotionRotationDegrees = 0,
-    long MotionDurationMs = 0, Guid? HideBlockId = null, bool MirrorPlacement = false);
+    long MotionDurationMs = 0, Guid? HideBlockId = null, bool MirrorPlacement = false, double Scale = 1);
 /// <summary>A planned scene. <see cref="CameraCues"/> are the camera blocks on the clock; <see cref="Camera"/> is the
 /// resulting path, filled in by CharacterFraming.ApplyAsync once the renders have their final placement.</summary>
 public sealed record SceneComposition(long DurationMs, IReadOnlyList<SceneMedia> Media,
@@ -437,7 +437,7 @@ public static class SceneComposer
                     volumePercent, hasVideoAudio,
                     mirror ? -transform.MotionOffsetX : transform.MotionOffsetX, transform.MotionOffsetY,
                     mirror ? -transform.MotionRotationDegrees : transform.MotionRotationDegrees,
-                    transform.MotionDurationMs, MirrorPlacement: mirror));
+                    transform.MotionDurationMs, MirrorPlacement: mirror, Scale: BlockParameters.Of(block).ScaleFactor(kind)));
                 if (kind is ScriptBlockKind.Dialogue or ScriptBlockKind.Narration || (kind == ScriptBlockKind.SoundEffect && WaitForSound(block))) clock += duration;
                 if (kind is ScriptBlockKind.Dialogue or ScriptBlockKind.Narration or ScriptBlockKind.SoundEffect ||
                     (kind == ScriptBlockKind.Music && AudioDuration(block).HasValue))

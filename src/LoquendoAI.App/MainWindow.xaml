@@ -970,7 +970,7 @@
                                     <TextBox x:Name="VisualHeightBox" Width="55" Height="25" Margin="5,0,10,0" Text="700" VerticalContentAlignment="Center" TextChanged="VisualSizeBox_TextChanged" ToolTip="64–720 px (fondo: hasta 2160 = zoom 300 %). El recurso mantiene su proporción."/>
                                     <TextBlock Text="Escala %:" VerticalAlignment="Center"/>
                                     <TextBox x:Name="EditorScaleBox" Width="42" Height="25" Margin="5,0,3,0" Text="100" VerticalContentAlignment="Center"
-                                             ToolTip="Agranda o achica ancho y alto a la vez (140 = 40 % más grande). Pulsa ✓ y guarda el bloque."/>
+                                             ToolTip="Personajes: tamaño del render, también con encuadre automático (130 = 30 % más grande; puede salir de su carril). Se guarda con el bloque. Otros: agranda o achica ancho y alto a la vez; pulsa ✓ y guarda el bloque."/>
                                     <Button Content="✓" Width="26" Height="25" Margin="0,0,10,0" Click="ApplyEditorScale_Click" ToolTip="Aplicar la escala a Ancho y Alto"/>
                                     <TextBlock Text="Mover X:" VerticalAlignment="Center"/>
                                     <TextBox x:Name="VisualOffsetXBox" Width="54" Height="25" Margin="5,0,10,0" Text="0" VerticalContentAlignment="Center" ToolTip="Píxeles; negativo mueve a la izquierda."/>

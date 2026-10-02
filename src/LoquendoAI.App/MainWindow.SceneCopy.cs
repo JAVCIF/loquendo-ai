@@ -281,6 +281,8 @@ public partial class MainWindow
                 if (visual.FlipHorizontal) options.Add("voltear h=si");
                 if (visual.FlipVertical) options.Add("voltear v=si");
                 if (visual.ChangeDirection) options.Add("cambiar direccion=si");
+                if (BlockParameters.Of(block).ScaleFactor(block.Kind) is var scale && scale != 1)
+                    options.Add("escala=" + Math.Round(scale * 100).ToString(CultureInfo.InvariantCulture));
                 if (visual.RotationDegrees != 0) options.Add("rotacion=" + visual.RotationDegrees.ToString("0.###", CultureInfo.InvariantCulture));
                 if (visual.MotionOffsetX != 0) options.Add("animar x=" + visual.MotionOffsetX.ToString(CultureInfo.InvariantCulture));
                 if (visual.MotionOffsetY != 0) options.Add("animar y=" + visual.MotionOffsetY.ToString(CultureInfo.InvariantCulture));

@@ -776,6 +776,8 @@ public partial class MainWindow
             var transform = SceneComposer.VisualTransform(block);
             VisualWidthBox.Text = transform.MaxWidth.ToString(CultureInfo.InvariantCulture);
             VisualHeightBox.Text = transform.MaxHeight.ToString(CultureInfo.InvariantCulture);
+            // A render keeps its «Escala» (1.4.7); for other visuals the box is a one-off action on width and height.
+            EditorScaleBox.Text = ScalePercentText(BlockParameters.Of(block).ScaleFactor(block.Kind));
             SyncBackgroundZoomCombo();
             VisualOffsetXBox.Text = transform.OffsetX.ToString(CultureInfo.InvariantCulture);
             VisualOffsetYBox.Text = transform.OffsetY.ToString(CultureInfo.InvariantCulture);
@@ -1000,6 +1002,7 @@ public partial class MainWindow
         };
         VisualWidthBox.Text = width.ToString(CultureInfo.InvariantCulture);
         VisualHeightBox.Text = height.ToString(CultureInfo.InvariantCulture);
+        EditorScaleBox.Text = "100";
         VisualOffsetXBox.Text = "0";
         VisualOffsetYBox.Text = "0";
         VisualFlipHorizontalCheck.IsChecked = false;

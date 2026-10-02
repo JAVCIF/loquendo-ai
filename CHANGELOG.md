@@ -1,3 +1,15 @@
+## v1.4.7 — Personajes de buen tamaño: carriles bien contados y «Revisar encuadre» que sí los ve
+- **Corregido: personajes diminutos en escenas con cruces.** El encuadre automático reparte el ancho entre los personajes que están a la vez, pero contaba clips: durante un cruce el render que sale y el que entra del mismo personaje contaban como dos, y una escena de 2 personajes quedaba con carriles de 288 px en vez de 608 de principio a fin. Ahora cuenta personajes (con 3 y 4 a la vez se reparte igual que antes).
+- **«Revisar encuadre» ve a los pequeños**, con 1 a 4 personajes en pantalla:
+  - Contra el cuadro: el cuerpo de un personaje por debajo del 60 % del alto (45 % si es un render ancho) se avisa, aunque esté solo o todos hayan quedado igual de pequeños.
+  - Contra quien está a su lado en ese momento: un 20 % más bajo (35 % para un render ancho).
+  - Ya no descarta en silencio a los que limita el ancho de su carril: los avisa y dice por qué.
+- **«Escala» del render** (`escala=130` en el Director, «Escala %» en el Editor, que ahora se guarda con el personaje): agranda o achica lo que da el encuadre automático, y puede salir un poco de su carril. Es la corrección de tamaño de «Revisar encuadre»; antes agrandaba la caja del bloque, que el encuadre automático ignoraba.
+- **Renders «sucios»**: un velo casi transparente, una sombra tenue o motas sueltas ya no hacen creer que el personaje ocupa todo el lienzo; el recorte sigue al personaje.
+- **Imágenes sin transparencia** (Paint, fondo blanco): se mide la figura contra el color del fondo y «Revisar encuadre» avisa que se verá el recuadro.
+- Props pequeños: además de los de 64 px o menos, los de menos de 100 px junto a personajes mucho más grandes.
+- Si un bloque tiene varios problemas, «Revisar encuadre» los muestra juntos en una sola fila.
+
 ## v1.4.6 — Transcripción con GPU (NVIDIA), voces grabadas a cualquier escena y versión en la cabecera
 - **«Incorporar voces a la escena» funciona en cualquier escena**: la tabla de Voces grabadas ya no queda atada a la escena donde añadiste o transcribiste los WAV. Puedes transcribir con una escena seleccionada, crear otra (o ir a otro capítulo) e incorporarlas ahí. Las tomas cargadas con «Cargar voces de la escena» se siguen actualizando en su escena de origen. Solo cambiar de proyecto vacía la tabla.
 - **La versión bajo el nombre del programa** sale de la compilación, así siempre coincide con la del release (antes se quedó en v1.4.2).

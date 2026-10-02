@@ -149,6 +149,9 @@ public sealed record BlockParameters
     public bool? IncludeSubfolders { get; init; }
     public int? VisualMaxWidth { get; init; }
     public int? VisualMaxHeight { get; init; }
+    /// <summary>«Escala» of a render (1.4.7): its size times this factor, on top of the automatic framing (which caps the
+    /// box by the lane and the shot) or of the box with «original». 1.3 = 30 % bigger. See <see cref="ScaleFactor"/>.</summary>
+    public double? Scale { get; init; }
     public int? VisualOffsetX { get; init; }
     public int? VisualOffsetY { get; init; }
     public bool? FlipHorizontal { get; init; }
@@ -278,6 +281,7 @@ public sealed record BlockParameters
                 IncludeSubfolders = Flag("includeSubfolders"),
                 VisualMaxWidth = Visual("visualMaxWidth", "videoMaxWidth"),
                 VisualMaxHeight = Visual("visualMaxHeight", "videoMaxHeight"),
+                Scale = Real("scale"),
                 VisualOffsetX = Visual("visualOffsetX", "videoOffsetX"),
                 VisualOffsetY = Visual("visualOffsetY", "videoOffsetY"),
                 FlipHorizontal = Flag("flipHorizontal"),
@@ -355,6 +359,7 @@ public sealed record BlockParameters
         Put("includeSubfolders", IncludeSubfolders);
         Put("visualMaxWidth", VisualMaxWidth);
         Put("visualMaxHeight", VisualMaxHeight);
+        Put("scale", Scale);
         Put("visualOffsetX", VisualOffsetX);
         Put("visualOffsetY", VisualOffsetY);
         Put("flipHorizontal", FlipHorizontal);
@@ -442,6 +447,12 @@ public sealed record BlockParameters
         kind is ScriptBlockKind.Narration or ScriptBlockKind.SoundEffect or ScriptBlockKind.Music;
 
     public string EffectivePosition => Position is "izquierda" or "derecha" or "auto" ? Position : "centro";
+
+    public const double ScaleMin = 0.25, ScaleMax = 3;
+
+    /// <summary>The render's «Escala» (only characters have one): 1 when missing or out of range.</summary>
+    public double ScaleFactor(ScriptBlockKind kind) =>
+        kind == ScriptBlockKind.CharacterShow && Scale is double s && s >= ScaleMin && s <= ScaleMax ? s : 1;
 
     public string Framing(ScriptBlockKind kind) => kind == ScriptBlockKind.CharacterShow &&
         FramingPreset is "auto" or "entero" or "medio" or "detalle" ? FramingPreset : "original";

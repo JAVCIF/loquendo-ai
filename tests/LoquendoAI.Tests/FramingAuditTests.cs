@@ -51,9 +51,15 @@ internal static class FramingAuditTests
     }
 
     private static Scene NewScene(TempFolder folder) => new(
-        TestMedia.SolidPng(folder.File("media/pj.png"), 400, 800, (220, 20, 20)),
-        TestMedia.SolidPng(folder.File("media/sillon.png"), 900, 500, (20, 160, 20)),
-        TestMedia.SolidPng(folder.File("media/prop.png"), 300, 200, (20, 20, 220)));
+        Render(folder.File("media/pj.png"), 400, 800, (220, 20, 20)),
+        Render(folder.File("media/sillon.png"), 900, 500, (20, 160, 20)),
+        Render(folder.File("media/prop.png"), 300, 200, (20, 20, 220)));
+
+    /// <summary>A render as they come: an opaque figure with a thin transparent edge (a plain opaque rectangle is now
+    /// reported as an image without transparency).</summary>
+    private static string Render(string path, int width, int height, (byte R, byte G, byte B) color) =>
+        TestMedia.Png(path, width, height, (x, y) => x < 2 || y < 2 || x >= width - 2 || y >= height - 2
+            ? ((byte)0, (byte)0, (byte)0, (byte)0) : (color.R, color.G, color.B, (byte)255));
 
     private static BlockParameters Character(string position, int moveX = 0, int offsetX = 0, bool mirror = false) => new()
     {
@@ -186,7 +192,9 @@ internal static class FramingAuditTests
 
         // The user's percentage replaces the proposal; the fixes leave no size issue.
         var custom = FramingAudit.ScaleFix(scene.Blocks.First(x => x.Id == tiny.Id), 2);
-        Assert.Equal(((int?)320, (int?)360), (custom.VisualMaxWidth, custom.VisualMaxHeight), "«Escala %» = la caja del bloque × porcentaje");
+        Assert.Equal((double?)2, custom.Scale, "el porcentaje del usuario va a la «Escala» del render (1.4.7)");
+        var prop2 = FramingAudit.ScaleFix(scene.Blocks.First(x => x.Id == prop.Id), 2);
+        Assert.Equal(((int?)128, (int?)128), (prop2.VisualMaxWidth, prop2.VisualMaxHeight), "un prop: su caja × porcentaje");
         foreach (var issue in issues) scene.Fix(issue.BlockId, issue.Fixes[0].Changes);
         var after = await scene.AuditAsync();
         Assert.True(!after.Any(x => x.Problem is FramingProblem.Small or FramingProblem.TinyProp),

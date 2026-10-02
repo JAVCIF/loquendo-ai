@@ -55,6 +55,8 @@ internal static class DirectorAiGrammar
         Fondo/render/imagen/video: ancho=64..1280, alto=64..720, x=-1280..1280, y=-720..720,
         rotacion=-180..180, cambiar direccion=si/no, voltear h=si/no, voltear v=si/no, duracion=<ms>,
         transicion=heredar/corte/fundido/disolvente/flash/barrido.
+        Render (solo [MOSTRAR]): escala=25..300 agranda o achica el personaje sobre su tamaño automático (130 = 30 % más
+        grande); úsala si un render se ve pequeño al lado de otro, en vez de ancho/alto.
         Para que un personaje mire hacia el otro lado usa cambiar direccion=si: se queda en su sitio. voltear h=si
         es un espejo de la capa: también la pasa al lado contrario del cuadro (izquierda ↔ derecha).
         Para mover una capa DURANTE su aparición: animar x=-1280..1280, animar y=-720..720,
