@@ -1,4 +1,4 @@
-## v1.4.8 — Biblioteca entre proyectos: importar y biblioteca principal
+## v1.5.0 — Biblioteca entre proyectos: importar y biblioteca principal
 - **«Importar de otro proyecto…»** (pestaña Biblioteca): trae la biblioteca de otro proyecto (fuentes, reglas de carpeta, clasificación y etiquetas, también las de la IA), y si quieres sus perfiles de voz y sus personajes con su voz.
   - No duplica nada: la misma carpeta (aunque esté escrita distinto), el mismo archivo, o un perfil o personaje con el mismo nombre se reconocen. Lo que ya tenías conserva su identidad, así que tus escenas siguen igual; para los mismos archivos manda la clasificación importada.
   - El otro proyecto no se toca y puede estar abierto en otra ventana (se lee de una copia).
