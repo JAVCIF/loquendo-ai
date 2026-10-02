@@ -244,6 +244,43 @@ internal static class FramingSizeTests
         Assert.True(!(await both.AuditAsync()).Any(), "corregidos, y en la misma proporción");
     }
 
+    [Test("Encuadre estricto: todos los renders con «Cambiar tamaño»; el de la animación mala trae su sugerencia; tamaño y límite se conservan juntos")]
+    public static async Task StrictReview()
+    {
+        TestMedia.RequireFfmpeg();
+        using var folder = new TempFolder();
+        TestMedia.SolidPng(folder.File("media/casa.png"), 1280, 720, (60, 60, 60));
+        Character(folder, "alto", 400, 800);
+        var scene = new Scene(folder, """
+            [FONDO] casa
+            [MOSTRAR] Bart | alto | izquierda | auto | animar x=-300 | animar ms=600
+            [MOSTRAR] Lisa | alto | derecha | auto
+            [PAUSA] 1500
+            """);
+        var planned = await scene.PlanAsync();
+        var automatic = await FramingAudit.AuditAsync(scene.Blocks, planned, scene.Name);
+        Assert.Sequence([FramingProblem.OutOfFrame], automatic.Select(x => x.Problem), "automático: solo la animación mala");
+        var strict = await FramingAudit.AuditAsync(scene.Blocks, planned, scene.Name, strict: true);
+        var bart = strict.Single(x => x.Message.StartsWith("Bart"));
+        var lisa = strict.Single(x => x.Message.StartsWith("Lisa"));
+        Assert.Equal(FramingProblem.OutOfFrame, bart.Problem, "estricto: Bart sigue con su aviso");
+        Assert.Sequence(["limitar", "entrada", "tamano"], bart.Fixes.Select(x => x.Id), "su sugerencia primero y también «Cambiar tamaño»");
+        Assert.True(!bart.Message.Contains("px de alto, el"), "el mensaje es el del aviso: " + bart.Message);
+        Assert.Equal((FramingProblem.Review, "Cambiar tamaño", (double?)1), (lisa.Problem, lisa.Fixes.Single().Label, lisa.Scale),
+            "Lisa, sin avisos: solo su tamaño, al 100 %");
+
+        // Limit Bart's move (automatic review), then make him 20 % bigger (strict review): both stay.
+        var memory = new FramingMemory();
+        var block = scene.Blocks.First(x => x.Id == bart.BlockId);
+        var limited = memory.Choose(block, automatic.Single(), "limitar");
+        var resized = memory.Choose(limited, bart, "tamano", 1.2);
+        var result = BlockParameters.Of(resized);
+        Assert.Equal((double?)1.2, result.Scale, "más grande");
+        Assert.Equal(BlockParameters.Of(limited).MotionOffsetX, result.MotionOffsetX, "conserva el movimiento limitado");
+        var lisaBlock = scene.Blocks.First(x => x.Id == lisa.BlockId);
+        Assert.Equal((double?)0.9, BlockParameters.Of(memory.Choose(lisaBlock, lisa, "tamano", 0.9)).Scale, "también achicar");
+    }
+
     [Test("Director: «escala=130» en [MOSTRAR] guarda la escala del render; fuera de 25–300 o en otro bloque es un error")]
     public static void ScaleOption()
     {

@@ -100,6 +100,8 @@ posición, personajes pequeños, props que casi no se ven e imágenes sin transp
   cuadro por personaje); un cruce entre dos renders del mismo personaje cuenta como uno.
 - Un personaje detrás de otro (tapado en parte por uno que se dibuja encima, con los pies más arriba) es más pequeño a
   propósito: no se compara con los del frente y solo se avisa si queda por debajo del 40 % del alto.
+- Modo **automático** (solo los avisos) o **estricto** (todos los renders y props de la escena, cada uno con «Cambiar
+  tamaño»; los que tienen avisos traen su sugerencia primero). La casilla está en la ventana y se recuerda.
 - Cada escena recuerda lo corregido: al volver se puede cambiar de corrección, deshacerla o marcar «es a propósito».
   Si editas el bloque o cambias el render, se revisa de nuevo.
 - En el Editor, «⤢ Ajustar al cuadro» corrige los campos del bloque abierto antes de guardar. «Escala %» es la escala

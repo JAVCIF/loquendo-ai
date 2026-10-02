@@ -12,7 +12,9 @@ public enum FramingProblem
     /// <summary>A prop so small it can barely be seen.</summary>
     TinyProp,
     /// <summary>A render or prop without transparency: its background shows as a box (1.4.7).</summary>
-    OpaqueBackground
+    OpaqueBackground,
+    /// <summary>Strict review (1.4.7): a render or prop without warnings, listed so its size can be changed too.</summary>
+    Review
 }
 
 /// <summary>A way to fix an issue: the parameters to set on the block (null fields stay as they are).
@@ -51,8 +53,10 @@ public static class FramingAudit
     private sealed record Placed(SceneMedia Clip, SceneScriptBlock Block, string Name, LayerLayout Layout,
         (double X0, double Y0, double X1, double Y1) Visible, RenderSurface Surface, long Start, long End, int Order);
 
+    /// <param name="strict">Strict review (1.4.7): besides the warnings, every render and prop of the scene, each with
+    /// «Cambiar tamaño», so any of them can be adjusted by hand.</param>
     public static async Task<IReadOnlyList<FramingIssue>> AuditAsync(IReadOnlyList<SceneScriptBlock> blocks, SceneComposition planned,
-        Func<SceneScriptBlock, string> name, CancellationToken token = default)
+        Func<SceneScriptBlock, string> name, CancellationToken token = default, bool strict = false)
     {
         var prepared = await CharacterFraming.ApplyAsync(planned, token);
         var byId = blocks.ToDictionary(x => x.Id);
@@ -80,6 +84,14 @@ public static class FramingAudit
             issues.Add(new FramingIssue(item.Clip.BlockId, FramingProblem.OpaqueBackground,
                 $"{item.Name}: la imagen no tiene transparencia" + (item.Surface.Background is { } color ? $" (fondo #{color})" : "") +
                 ", se verá el recuadro; usa un render con fondo transparente", []));
+        if (strict)
+            foreach (var item in placed)
+            {
+                var height = item.Visible.Y1 - item.Visible.Y0;
+                issues.Add(new FramingIssue(item.Clip.BlockId, FramingProblem.Review,
+                    $"{item.Name}: {Math.Round(height).ToString(CultureInfo.InvariantCulture)} px de alto, el {(int)Math.Round(height / Frame * 100)} % del cuadro",
+                    [new FramingFix("tamano", "Cambiar tamaño", ScaleFix(item.Block, 1))], 1));
+            }
         return issues.GroupBy(x => x.BlockId).Select(Merge)
             .OrderBy(x => byId[x.BlockId].OrderIndex).ThenBy(x => x.Problem).ToArray();
     }
@@ -89,9 +101,10 @@ public static class FramingAudit
     {
         var all = group.OrderBy(x => x.Problem).ToArray();
         if (all.Length == 1) return all[0];
+        var warnings = all.Where(x => x.Problem != FramingProblem.Review).ToArray();
         return all[0] with
         {
-            Message = string.Join(" · ", all.Select(x => x.Message)),
+            Message = string.Join(" · ", (warnings.Length > 0 ? warnings : all).Select(x => x.Message)),
             Fixes = all.SelectMany(x => x.Fixes).DistinctBy(x => x.Id).ToArray(),
             Scale = all.Select(x => x.Scale).FirstOrDefault(x => x is not null)
         };

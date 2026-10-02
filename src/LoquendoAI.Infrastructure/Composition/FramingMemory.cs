@@ -85,6 +85,9 @@ public sealed class FramingMemory
             record = new FramingRecord(block.Id, block.ParametersJson, "", "", issue.Problem, issue.Message,
                 issue.Fixes.Select(x => new FramingRecordFix(x.Id, x.Label, x.Changes.ToJson())).ToArray(), issue.Scale);
         }
+        else if (issue?.Fixes.FirstOrDefault(x => x.Id == choice) is { } offered && record.Fixes.All(x => x.Id != choice))
+            // A fix the remembered review did not have (the strict review offers «Cambiar tamaño» for any render).
+            record = record with { Fixes = [.. record.Fixes, new FramingRecordFix(offered.Id, offered.Label, offered.Changes.ToJson())] };
         var original = BlockParameters.Parse(record.OriginalParameters);
         SceneScriptBlock result;
         if (choice == Intended || choice == Undone)
@@ -96,7 +99,21 @@ public sealed class FramingMemory
             var changes = fix.Id == "tamano" && scale is double custom
                 ? FramingAudit.ScaleFix(block with { ParametersJson = record.OriginalParameters }, custom)
                 : BlockParameters.Parse(fix.Changes);
-            result = block with { ParametersJson = FramingAudit.Apply(original, changes).ToJson() };
+            // Size and place are independent (1.4.7): a size fix keeps the place the block has now (a limited move) and
+            // a place fix keeps its size; each one starts from the original values of its own fields.
+            var now = BlockParameters.Of(block);
+            var basis = fix.Id == "tamano"
+                ? original with
+                {
+                    VisualOffsetX = now.VisualOffsetX, VisualOffsetY = now.VisualOffsetY,
+                    MotionOffsetX = now.MotionOffsetX, MotionOffsetY = now.MotionOffsetY
+                }
+                : original with
+                {
+                    Scale = now.Scale, VisualMaxWidth = now.VisualMaxWidth, VisualMaxHeight = now.VisualMaxHeight,
+                    FramingPreset = now.FramingPreset
+                };
+            result = block with { ParametersJson = FramingAudit.Apply(basis, changes).ToJson() };
         }
         _records[block.Id] = record with { Fingerprint = Fingerprint(result), Choice = choice, Scale = scale ?? record.Scale };
         return result;

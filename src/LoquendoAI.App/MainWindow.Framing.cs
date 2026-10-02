@@ -34,7 +34,7 @@ public partial class MainWindow
     /// count as a pause of about their length, and blocks whose file is missing are left out.
     /// </summary>
     private async Task<IReadOnlyList<FramingIssue>> AuditFramingAsync(SqliteProjectRepository repository, Guid sceneId,
-        IReadOnlyList<SceneScriptBlock> blocks, CancellationToken token = default)
+        IReadOnlyList<SceneScriptBlock> blocks, CancellationToken token = default, bool strict = false)
     {
         var paths = await ResolveScenePathsAsync(blocks.ToArray(), repository.ProjectRoot);
         var stand = blocks.Select(block =>
@@ -54,7 +54,7 @@ public partial class MainWindow
         var planned = await SceneComposer.PlanAsync(stand, b => paths.GetValueOrDefault(b.Id), token,
             b => b.AssetId is Guid id && _scriptAssetCache.TryGetValue(id, out var asset) && SceneComposer.LooksLikeGreenScreen(asset.DisplayName),
             await CinemaAtSceneStartAsync(repository, sceneId));
-        return await FramingAudit.AuditAsync(blocks, planned, FramingName, token);
+        return await FramingAudit.AuditAsync(blocks, planned, FramingName, token, strict);
     }
 
     /// <summary>After «Aplicar»: counts the framing warnings of the scene; the next ▶ of that scene asks to review them.
@@ -104,7 +104,7 @@ public partial class MainWindow
         if (_currentRepository is not { } repository || ScenesList.SelectedItem is not SceneScriptRow scene || _scriptBlocks.Count == 0)
             return;
         var sceneId = scene.Scene.Id;
-        IReadOnlyList<FramingIssue> issues;
+        IReadOnlyList<FramingIssue> issues, all;
         FramingMemory memory;
         var blocks = _scriptBlocks.ToArray();
         try
@@ -113,6 +113,8 @@ public partial class MainWindow
             memory = FramingMemory.Load(FramingMemoryPath(repository, sceneId));
             memory.Prune(blocks);
             issues = await AuditFramingAsync(repository, sceneId, blocks);
+            // «Estricto» (1.4.7): the same review plus every render and prop of the scene, to resize any of them.
+            all = await AuditFramingAsync(repository, sceneId, blocks, strict: true);
         }
         catch (Exception ex)
         {
@@ -123,8 +125,17 @@ public partial class MainWindow
         if (_currentRepository != repository || (ScenesList.SelectedItem as SceneScriptRow)?.Scene.Id != sceneId) return;
         _framingPendingScenes.Remove(sceneId);
         var byId = blocks.ToDictionary(x => x.Id);
-        var window = new FramingReviewWindow(issues, memory, byId, FramingName) { Owner = this };
-        if (window.ShowDialog() != true)
+        var settings = UiSettings.Load();
+        var window = new FramingReviewWindow(issues, all, settings.FramingStrict, memory, byId, FramingName) { Owner = this };
+        var accepted = window.ShowDialog() == true;
+        if (window.Strict != settings.FramingStrict)
+        {
+            settings = UiSettings.Load();
+            settings.FramingStrict = window.Strict;
+            settings.Save();
+        }
+        var shown = window.Strict ? all : issues;
+        if (!accepted)
         {
             ScriptStatusText.Text = memory.Pending(issues).Count == 0 ? "Encuadre revisado: todo en orden." : "Revisión de encuadre cerrada sin cambios.";
             if (window.OpenBlockId is Guid open) await LoadBlocksAsync(sceneId, open);
@@ -136,7 +147,7 @@ public partial class MainWindow
             foreach (var (blockId, choice, scale) in window.Choices)
             {
                 if (!byId.TryGetValue(blockId, out var block)) continue;
-                var result = memory.Choose(block, issues.FirstOrDefault(x => x.BlockId == blockId), choice, scale);
+                var result = memory.Choose(block, shown.FirstOrDefault(x => x.BlockId == blockId), choice, scale);
                 if (result.ParametersJson == block.ParametersJson) continue;
                 await repository.UpsertSceneScriptBlockAsync(result);
                 changed++;

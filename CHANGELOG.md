@@ -10,6 +10,8 @@
 - **Renders «sucios»**: un velo casi transparente, una sombra tenue o motas sueltas ya no hacen creer que el personaje ocupa todo el lienzo; el recorte sigue al personaje.
 - **Imágenes sin transparencia** (Paint, fondo blanco): se mide la figura contra el color del fondo y «Revisar encuadre» avisa que se verá el recuadro.
 - Props pequeños: además de los de 64 px o menos, los de menos de 100 px junto a personajes mucho más grandes.
+- **«Revisar encuadre» automático o estricto** (casilla en la ventana; se recuerda): el automático muestra solo lo que tiene avisos; el estricto lista todos los renders y props de la escena con «Cambiar tamaño» y su porcentaje (también para achicar), y los que tienen avisos siguen trayendo su sugerencia primero.
+- Tamaño y posición se corrigen por separado: agrandar un render al que ya le limitaste la animación conserva el límite, y al revés.
 - Si un bloque tiene varios problemas, «Revisar encuadre» los muestra juntos en una sola fila.
 
 ## v1.4.6 — Transcripción con GPU (NVIDIA), voces grabadas a cualquier escena y versión en la cabecera

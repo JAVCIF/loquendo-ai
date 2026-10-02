@@ -150,6 +150,8 @@ internal sealed class UiSettings
     /// <summary>Star weights of the sources and assets tables of the Library.</summary>
     public double LibrarySourcesWeight { get; set; }
     public double LibraryAssetsWeight { get; set; }
+    /// <summary>«Revisar encuadre» in strict mode: every render of the scene, not only the warnings (1.4.7).</summary>
+    public bool FramingStrict { get; set; }
 
     public static UiSettings Load()
     {
