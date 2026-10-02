@@ -817,9 +817,129 @@ UNION SELECT asset_id FROM asset_tags WHERE key LIKE 'director.manual.%' OR key 
         return result;
     }, cancellationToken);
 
+    /// <summary>Every tag of every asset, catalog and Director (LibraryTransfer).</summary>
+    public Task<IReadOnlyList<AssetTag>> GetAllAssetTagsAsync(CancellationToken cancellationToken = default) => ReadAsync<IReadOnlyList<AssetTag>>(async connection =>
+    {
+        var result = new List<AssetTag>();
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT asset_id, key, value, confidence FROM asset_tags";
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+            result.Add(new AssetTag(Guid.Parse(reader.GetString(0)), reader.GetString(1), reader.GetString(2), reader.GetDouble(3)));
+        return result;
+    }, cancellationToken);
+
+    /// <summary>
+    /// Writes a library transfer (1.4.8) in one transaction: sources, the folder rules of each listed source, assets
+    /// (what comes from the other project wins for the same file, manual marks included: they travel as its tags), the
+    /// tags of each listed asset, voice profiles and characters. Nothing is deleted except the replaced rules and tags.
+    /// </summary>
+    public async Task ApplyLibraryTransferAsync(Projects.LibraryTransferPlan plan, CancellationToken cancellationToken = default)
+    {
+        // Its own connection: the project keeps working meanwhile (its writes wait for this transaction, WAL).
+        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = Path.Combine(ProjectRoot, "project.db"), Mode = SqliteOpenMode.ReadWrite, Pooling = false
+        }.ToString());
+        await connection.OpenAsync(cancellationToken);
+        await using (var pragmas = connection.CreateCommand())
+        {
+            pragmas.CommandText = DatabaseSchema.Pragmas + "PRAGMA busy_timeout = 30000;";
+            await pragmas.ExecuteNonQueryAsync(cancellationToken);
+        }
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            async Task Run(Action<SqliteCommand> fill)
+            {
+                await using var cmd = connection.CreateCommand();
+                cmd.Transaction = transaction;
+                fill(cmd);
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+            foreach (var source in plan.Sources) await Run(cmd => SourceUpsert(cmd, source));
+            foreach (var (sourceId, rules) in plan.Rules)
+            {
+                await Run(cmd =>
+                {
+                    cmd.CommandText = "DELETE FROM folder_rules WHERE source_id = $source;";
+                    cmd.Parameters.AddWithValue("$source", sourceId.ToString("D"));
+                });
+                foreach (var rule in rules) await Run(cmd => RuleInsert(cmd, sourceId, rule));
+            }
+            foreach (var profile in plan.Profiles) await Run(cmd => ProfileUpsert(cmd, profile));
+            foreach (var character in plan.Characters) await Run(cmd => CharacterUpsert(cmd, character));
+            foreach (var asset in plan.Assets)
+                await Run(cmd =>
+                {
+                    cmd.CommandText = """
+INSERT INTO assets(
+    id, relative_path, kind, sha256, display_name, imported_utc,
+    source_id, source_relative_path, file_size, last_write_utc, extension,
+    cutout_status, subject_name, collection_name, is_missing)
+VALUES(
+    $id, $path, $kind, $sha, $name, $imported,
+    $source, $sourcePath, $size, $lastWrite, $extension,
+    $cutout, $subject, $collection, $missing)
+ON CONFLICT(id) DO UPDATE SET
+    relative_path = excluded.relative_path, kind = excluded.kind, sha256 = excluded.sha256,
+    display_name = excluded.display_name, source_id = excluded.source_id,
+    source_relative_path = excluded.source_relative_path, file_size = excluded.file_size,
+    last_write_utc = excluded.last_write_utc, extension = excluded.extension,
+    cutout_status = excluded.cutout_status, subject_name = excluded.subject_name,
+    collection_name = excluded.collection_name, is_missing = excluded.is_missing;
+""";
+                    cmd.Parameters.AddWithValue("$id", asset.Id.ToString("D"));
+                    cmd.Parameters.AddWithValue("$path", asset.RelativePath);
+                    cmd.Parameters.AddWithValue("$kind", (int)asset.Kind);
+                    cmd.Parameters.AddWithValue("$sha", asset.Sha256);
+                    cmd.Parameters.AddWithValue("$name", asset.DisplayName);
+                    cmd.Parameters.AddWithValue("$imported", asset.ImportedUtc.ToString("O", CultureInfo.InvariantCulture));
+                    cmd.Parameters.AddWithValue("$source", DbValue(asset.SourceId?.ToString("D")));
+                    cmd.Parameters.AddWithValue("$sourcePath", DbValue(asset.SourceRelativePath));
+                    cmd.Parameters.AddWithValue("$size", asset.FileSize);
+                    cmd.Parameters.AddWithValue("$lastWrite", DbValue(asset.LastWriteUtc?.ToString("O", CultureInfo.InvariantCulture)));
+                    cmd.Parameters.AddWithValue("$extension", asset.Extension);
+                    cmd.Parameters.AddWithValue("$cutout", (int)asset.CutoutStatus);
+                    cmd.Parameters.AddWithValue("$subject", DbValue(asset.SubjectName));
+                    cmd.Parameters.AddWithValue("$collection", DbValue(asset.CollectionName));
+                    cmd.Parameters.AddWithValue("$missing", asset.IsMissing ? 1 : 0);
+                });
+            foreach (var (assetId, tags) in plan.Tags)
+            {
+                await Run(cmd =>
+                {
+                    cmd.CommandText = "DELETE FROM asset_tags WHERE asset_id = $id;";
+                    cmd.Parameters.AddWithValue("$id", assetId.ToString("D"));
+                });
+                foreach (var tag in tags)
+                    await Run(cmd =>
+                    {
+                        cmd.CommandText = "INSERT OR IGNORE INTO asset_tags(asset_id, key, value, confidence) VALUES($id, $key, $value, $confidence);";
+                        cmd.Parameters.AddWithValue("$id", assetId.ToString("D"));
+                        cmd.Parameters.AddWithValue("$key", tag.Key);
+                        cmd.Parameters.AddWithValue("$value", tag.Value);
+                        cmd.Parameters.AddWithValue("$confidence", tag.Confidence);
+                    });
+            }
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
     public async Task UpsertAssetSourceAsync(AssetSource source, CancellationToken cancellationToken = default)
     {
         await using var cmd = _connection.CreateCommand();
+        SourceUpsert(cmd, source);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static void SourceUpsert(SqliteCommand cmd, AssetSource source)
+    {
         cmd.CommandText = """
 INSERT INTO asset_sources(id, name, root_path, enabled, created_utc, last_scan_utc)
 VALUES($id, $name, $root, $enabled, $created, $lastScan)
@@ -835,7 +955,6 @@ ON CONFLICT(id) DO UPDATE SET
         cmd.Parameters.AddWithValue("$enabled", source.Enabled ? 1 : 0);
         cmd.Parameters.AddWithValue("$created", source.CreatedUtc.ToString("O", CultureInfo.InvariantCulture));
         cmd.Parameters.AddWithValue("$lastScan", DbValue(source.LastScanUtc?.ToString("O", CultureInfo.InvariantCulture)));
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task DeleteAssetSourceAsync(Guid sourceId, CancellationToken cancellationToken = default)
@@ -904,24 +1023,29 @@ ORDER BY length(relative_folder), relative_folder;
         {
             await using var cmd = _connection.CreateCommand();
             cmd.Transaction = transaction;
-            cmd.CommandText = """
+            RuleInsert(cmd, sourceId, rule);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    private static void RuleInsert(SqliteCommand cmd, Guid sourceId, FolderRule rule)
+    {
+        cmd.CommandText = """
 INSERT INTO folder_rules(
     id, source_id, relative_folder, classification, subject_name, collection_name,
     include_subfolders, default_cutout_status)
 VALUES($id, $source, $folder, $classification, $subject, $collection, $inherit, $cutout);
 """;
-            cmd.Parameters.AddWithValue("$id", rule.Id.ToString("D"));
-            cmd.Parameters.AddWithValue("$source", sourceId.ToString("D"));
-            cmd.Parameters.AddWithValue("$folder", NormalizeRelativePath(rule.RelativeFolder));
-            cmd.Parameters.AddWithValue("$classification", (int)rule.Classification);
-            cmd.Parameters.AddWithValue("$subject", DbValue(rule.SubjectName));
-            cmd.Parameters.AddWithValue("$collection", DbValue(rule.CollectionName));
-            cmd.Parameters.AddWithValue("$inherit", rule.IncludeSubfolders ? 1 : 0);
-            cmd.Parameters.AddWithValue("$cutout", (int)rule.DefaultCutoutStatus);
-            await cmd.ExecuteNonQueryAsync(cancellationToken);
-        }
-
-        await transaction.CommitAsync(cancellationToken);
+        cmd.Parameters.AddWithValue("$id", rule.Id.ToString("D"));
+        cmd.Parameters.AddWithValue("$source", sourceId.ToString("D"));
+        cmd.Parameters.AddWithValue("$folder", NormalizeRelativePath(rule.RelativeFolder));
+        cmd.Parameters.AddWithValue("$classification", (int)rule.Classification);
+        cmd.Parameters.AddWithValue("$subject", DbValue(rule.SubjectName));
+        cmd.Parameters.AddWithValue("$collection", DbValue(rule.CollectionName));
+        cmd.Parameters.AddWithValue("$inherit", rule.IncludeSubfolders ? 1 : 0);
+        cmd.Parameters.AddWithValue("$cutout", (int)rule.DefaultCutoutStatus);
     }
 
     public async Task<IReadOnlyList<VoiceProfile>> GetVoiceProfilesAsync(CancellationToken cancellationToken = default)
@@ -953,6 +1077,12 @@ ORDER BY name COLLATE NOCASE;
     public async Task UpsertVoiceProfileAsync(VoiceProfile profile, CancellationToken cancellationToken = default)
     {
         await using var cmd = _connection.CreateCommand();
+        ProfileUpsert(cmd, profile);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static void ProfileUpsert(SqliteCommand cmd, VoiceProfile profile)
+    {
         cmd.CommandText = """
 INSERT INTO voice_profiles(
     id, name, provider_key, voice_id, rate, pitch, config_json,
@@ -983,7 +1113,6 @@ ON CONFLICT(id) DO UPDATE SET
         cmd.Parameters.AddWithValue("$pitch", DbValue(profile.Pitch));
         cmd.Parameters.AddWithValue("$volume", Math.Clamp(profile.Volume, 0, 100));
         cmd.Parameters.AddWithValue("$sampleRate", profile.SampleRate);
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task DeleteVoiceProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
@@ -1014,6 +1143,12 @@ ON CONFLICT(id) DO UPDATE SET
     public async Task UpsertCharacterAsync(CharacterDefinition character, CancellationToken cancellationToken = default)
     {
         await using var cmd = _connection.CreateCommand();
+        CharacterUpsert(cmd, character);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static void CharacterUpsert(SqliteCommand cmd, CharacterDefinition character)
+    {
         cmd.CommandText = """
 INSERT INTO characters(id, name, default_voice_profile_id, notes)
 VALUES($id, $name, $voice, $notes)
@@ -1026,7 +1161,6 @@ ON CONFLICT(id) DO UPDATE SET
         cmd.Parameters.AddWithValue("$name", character.Name);
         cmd.Parameters.AddWithValue("$voice", DbValue(character.DefaultVoiceProfileId?.ToString("D")));
         cmd.Parameters.AddWithValue("$notes", DbValue(character.Notes));
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task DeleteCharacterAsync(Guid characterId, CancellationToken cancellationToken = default)

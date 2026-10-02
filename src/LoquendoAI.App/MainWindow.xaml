@@ -120,7 +120,8 @@
                         <RowDefinition x:Name="LibraryAssetsRow" Height="3*" MinHeight="160"/>
                     </Grid.RowDefinitions>
 
-                <DockPanel Margin="0,0,0,8">
+                <StackPanel Margin="0,0,0,8">
+                <DockPanel>
                     <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" FontSize="18" FontWeight="SemiBold" Text="Fuentes"/>
                     <StackPanel x:Name="LibraryActionsPanel" DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button Margin="5,0" Padding="12,5" Content="Agregar fuente…" Style="{StaticResource AccentButton}" Click="AddSource_Click"/>
@@ -131,6 +132,17 @@
                         <Button Margin="5,0,0,0" Padding="12,5" Content="Quitar fuente" Click="RemoveSource_Click"/>
                     </StackPanel>
                 </DockPanel>
+                <WrapPanel Margin="0,8,0,0">
+                    <Button Padding="12,4" Content="Importar de otro proyecto…" Click="ImportFromProject_Click"
+                            ToolTip="Trae la biblioteca (fuentes, reglas, clasificación y etiquetas), los perfiles de voz y los personajes de otro proyecto, sin duplicar lo que ya está ni tocar el otro proyecto."/>
+                    <TextBlock x:Name="MainLibraryText" Margin="16,0,8,0" VerticalAlignment="Center" Text="Sin biblioteca principal."/>
+                    <CheckBox x:Name="FollowMainLibraryCheck" Margin="0,0,8,0" VerticalAlignment="Center" Content="Seguirla" Click="FollowMainLibrary_Click"
+                              ToolTip="Este proyecto recibe las fuentes y los recursos nuevos de la biblioteca principal cada vez que lo abres. Nada de aquí se borra."/>
+                    <Button x:Name="SyncMainLibraryButton" Margin="0,0,8,0" Padding="10,4" Content="Actualizar ahora" Click="SyncMainLibrary_Click"/>
+                    <Button x:Name="SetMainLibraryButton" Padding="10,4" Content="Usar este proyecto como biblioteca principal" Click="SetMainLibrary_Click"
+                            ToolTip="Los demás proyectos podrán seguir la biblioteca de este. Solo la biblioteca: perfiles y personajes se pasan con «Importar de otro proyecto»."/>
+                </WrapPanel>
+                </StackPanel>
 
                 <DataGrid Grid.Row="1" x:Name="SourcesGrid" AutoGenerateColumns="False" CanUserAddRows="False"
                           IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow"

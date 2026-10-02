@@ -1,3 +1,9 @@
+## v1.4.8 — Biblioteca entre proyectos: importar y biblioteca principal
+- **«Importar de otro proyecto…»** (pestaña Biblioteca): trae la biblioteca de otro proyecto (fuentes, reglas de carpeta, clasificación y etiquetas, también las de la IA), y si quieres sus perfiles de voz y sus personajes con su voz.
+  - No duplica nada: la misma carpeta (aunque esté escrita distinto), el mismo archivo, o un perfil o personaje con el mismo nombre se reconocen. Lo que ya tenías conserva su identidad, así que tus escenas siguen igual; para los mismos archivos manda la clasificación importada.
+  - El otro proyecto no se toca y puede estar abierto en otra ventana (se lee de una copia).
+- **Biblioteca principal**: «Usar este proyecto como biblioteca principal» y, en los demás, la casilla «Seguirla». Un proyecto que la sigue recibe sus fuentes y recursos nuevos (y su clasificación) cada vez que se abre, solo si la principal cambió; «Actualizar ahora» lo hace al momento. Al crear un proyecto se ofrece seguirla. Solo la biblioteca: los perfiles y personajes se pasan con «Importar». Nada se borra en los proyectos que la siguen.
+
 ## v1.4.7 — Personajes de buen tamaño: carriles bien contados y «Revisar encuadre» que sí los ve
 - **Corregido: personajes diminutos en escenas con cruces.** El encuadre automático reparte el ancho entre los personajes que están a la vez, pero contaba clips: durante un cruce el render que sale y el que entra del mismo personaje contaban como dos, y una escena de 2 personajes quedaba con carriles de 288 px en vez de 608 de principio a fin. Ahora cuenta personajes.
 - **Con 4 o 5 en pantalla (por ejemplo 3 al frente y 2 detrás) ya no quedan diminutos:** el ancho de cada carril nunca baja de un tercio del cuadro (394 px). A los renders altos no les cambia nada; los anchos (ponies, sentados) dejan de encogerse y pueden encimarse un poco, como en cualquier composición con fila de atrás.

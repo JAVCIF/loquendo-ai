@@ -44,7 +44,9 @@ public partial class MainWindow : Window
 
         try
         {
-            await SetRepositoryAsync(await _projects.CreateAsync(dialog.FolderName, ProjectNameBox.Text));
+            var repository = await _projects.CreateAsync(dialog.FolderName, ProjectNameBox.Text);
+            await SetRepositoryAsync(repository);
+            await OfferMainLibraryAsync(repository);
         }
         catch (Exception ex)
         {
@@ -111,6 +113,8 @@ public partial class MainWindow : Window
         await RefreshDirectVoicesAsync();
         await MatchNpcVoiceToCatalogAsync();
         await OpenDialogueProjectAsync(repository);
+        UpdateMainLibraryPanel();
+        await SyncMainLibraryAsync(repository, force: false);
     }
 
     private async void AddSource_Click(object sender, RoutedEventArgs e)

@@ -62,7 +62,7 @@ se limpia la caché y se elige el tema claro u oscuro. Debajo hay cinco pestaña
 | Pestaña | Para qué sirve |
 | --- | --- |
 | **Inicio** | Guía rápida del flujo de trabajo. |
-| **Biblioteca** | Registrar carpetas de recursos (fondos, renders, props, GIF, videos, música, SFX), clasificarlos por reglas de carpeta y etiquetarlos. La IA puede describir imágenes y reconocer música, memes y efectos por su nombre, o escuchando el audio con Gemini. |
+| **Biblioteca** | Registrar carpetas de recursos (fondos, renders, props, GIF, videos, música, SFX), clasificarlos por reglas de carpeta y etiquetarlos. La IA puede describir imágenes y reconocer música, memes y efectos por su nombre, o escuchando el audio con Gemini. Cada proyecto tiene su biblioteca, pero se puede traer la de otro proyecto («Importar de otro proyecto», también con perfiles de voz y personajes) o seguir una **biblioteca principal**: un proyecto marcado como principal cuyas fuentes y recursos reciben los proyectos que la siguen cada vez que se abren. |
 | **Voice Lab** | Personajes y perfiles de voz: motor, voz, pitch, velocidad y volumen, con prueba inmediata. Al guardar un perfil nuevo ofrece crear el personaje con ese mismo nombre y esa voz (o asignársela a uno que aún no tenga). También decide qué voces aparecen en los selectores del resto del programa («Voces en los selectores…»). |
 | **Diálogos** | Escribir, pegar o importar el guion completo de un episodio desde texto, Word, Excel o CSV. Se asigna la voz de cada línea (los NPC pueden tener cualquier voz), se generan y escuchan los audios, y se exporta todo a escenas. Incluye generación de diálogos con IA y un «prompt maestro» para usar con una IA web. |
 | **Guion** | Episodios, escenas y bloques. Aquí están el **Editor** de bloques, la **Preview**, las **Voces grabadas**, el **Director (prompt)** y el **Director IA**. |
@@ -297,7 +297,8 @@ en el Director IA, importa tu catálogo para que la IA las use.
 | Configuración, claves cifradas, tema, `errores.log`, selector de voces | `%LOCALAPPDATA%\LoquendoAI\` | `datos\` junto al `.exe` |
 | Modelos de Whisper | caché de Hugging Face del usuario | `datos\modelos-stt\` |
 | Soporte GPU de la transcripción (cuBLAS/cuDNN, si lo instalas) | `%LOCALAPPDATA%\LoquendoAI\soporte-gpu\` | `datos\soporte-gpu\` |
-| Proyecto (base de datos, voces, MP4, exportaciones, copias, correcciones de encuadre) | la carpeta del proyecto | la carpeta del proyecto |
+| Proyecto (base de datos con biblioteca, personajes y perfiles de voz; voces, MP4, exportaciones, copias, correcciones de encuadre) | la carpeta del proyecto | la carpeta del proyecto |
+| Cuál es la biblioteca principal y qué proyectos la siguen | `%LOCALAPPDATA%\LoquendoAI\biblioteca-principal.json` | `datos\biblioteca-principal.json` |
 | Tus recursos | donde estén: nunca se copian ni se modifican | igual |
 
 ## Compilar desde el código
