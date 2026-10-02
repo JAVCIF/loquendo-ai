@@ -120,7 +120,7 @@ internal static class FramingSizeTests
         Assert.True(!issues.Any(x => x.Problem == FramingProblem.Small), "bien encuadrados: " + string.Join("; ", issues.Select(x => x.Message)));
     }
 
-    [Test("Encuadre: con 3 y 4 personajes a la vez los carriles se reparten de verdad; un pony ancho en 4 carriles se avisa y «Escala» lo saca del carril")]
+    [Test("Encuadre: con 3 y 4 personajes a la vez los carriles se reparten (nunca más angostos que un tercio); un pony ancho bajito se avisa y «Escala» lo saca del carril")]
     public static async Task ThreeAndFour()
     {
         TestMedia.RequireFfmpeg();
@@ -148,7 +148,7 @@ internal static class FramingSizeTests
             [MOSTRAR] Fluttershy | pony | auto
             [PAUSA] 1500
             """);
-        Assert.True((await four.BoxesAsync()).Values.All(x => x.Width == 1280 / 4 - 32), "cuatro personajes: cuatro carriles de 288");
+        Assert.True((await four.BoxesAsync()).Values.All(x => x.Width == 1280 / 3 - 32), "cuatro personajes: el ancho no baja de un tercio (394, no 288)");
         var issues = await four.AuditAsync();
         var pony = issues.Single(x => x.Problem == FramingProblem.Small);
         Assert.Contains("Fluttershy", pony.Message, "el pony ancho queda bajito en su carril (los altos no)");
@@ -156,8 +156,63 @@ internal static class FramingSizeTests
         four.Fix(pony.BlockId, pony.Fixes[0].Changes);
         Assert.True(BlockParameters.Of(four.Blocks.First(x => x.Id == pony.BlockId)).Scale > 1.5, "la corrección es su «Escala»");
         var box = (await four.BoxesAsync())[pony.BlockId];
-        Assert.True(box.Width > 288, $"con «Escala» puede pasar de su carril ({box.Width})");
+        Assert.True(box.Width > 394, $"con «Escala» puede pasar de su carril ({box.Width})");
         Assert.True(!(await four.AuditAsync()).Any(x => x.Problem == FramingProblem.Small), "corregido");
+    }
+
+    [Test("Encuadre: 3 al frente y 2 detrás no quedan diminutos; los de atrás no se comparan con los del frente, pero si todo queda pequeño se avisa")]
+    public static async Task FrontAndBackRows()
+    {
+        TestMedia.RequireFfmpeg();
+        using var folder = new TempFolder();
+        TestMedia.SolidPng(folder.File("media/casa.png"), 1280, 720, (60, 60, 60));
+        Character(folder, "alto", 400, 800);
+        Character(folder, "pony", 1456, 1214);
+        Character(folder, "sentado", 620, 709);
+        // The back row first (drawn under), moved towards the middle and a little up.
+        var humans = new Scene(folder, """
+            [FONDO] casa
+            [MOSTRAR] Homero | alto | izquierda | auto | x=230 | y=-70
+            [MOSTRAR] Marge | alto | derecha | auto | x=-230 | y=-70
+            [MOSTRAR] Bart | alto | izquierda | auto
+            [MOSTRAR] Lisa | alto | centro | auto
+            [MOSTRAR] Maggie | alto | derecha | auto
+            [PAUSA] 1500
+            """);
+        Assert.True((await humans.BoxesAsync()).Values.All(x => x.Width == 1280 / 3 - 32), "cinco a la vez: carriles de 394, no de 224");
+        Assert.Equal(0, (await humans.AuditAsync()).Count, "humanos de buen tamaño, superpuestos a propósito: nada que avisar");
+
+        var mixed = new Scene(folder, """
+            [FONDO] casa
+            [MOSTRAR] Twilight | pony | izquierda | auto | x=230 | y=-70
+            [MOSTRAR] Rarity | pony | derecha | auto | x=-230 | y=-70
+            [MOSTRAR] Bart | sentado | izquierda | auto
+            [MOSTRAR] Fluttershy | pony | centro | auto
+            [MOSTRAR] Lisa | alto | derecha | auto
+            [PAUSA] 1500
+            """);
+        var issues = await mixed.AuditAsync();
+        Assert.True(!issues.Any(x => x.Message.StartsWith("Twilight") || x.Message.StartsWith("Rarity")),
+            "las de atrás (46 % del cuadro) no se comparan con Lisa: " + string.Join("; ", issues.Select(x => x.Message)));
+        Assert.True(issues.Any(x => x.Message.StartsWith("Fluttershy")), "la pony del frente, bajita junto a Lisa, sí");
+        foreach (var each in issues) mixed.Fix(each.BlockId, each.Fixes[0].Changes);
+        Assert.True(!(await mixed.AuditAsync()).Any(x => x.Problem == FramingProblem.Small), "corregidos; las de atrás siguen sin aviso");
+
+        // Everything small (a back row of 200 px, partly covered by the front row): the back row is warned too, against the frame.
+        var tiny = new Scene(folder, """
+            [FONDO] casa
+            [MOSTRAR] Homero | alto | izquierda | auto | x=60 | y=-70 | ancho=100 | alto=200
+            [MOSTRAR] Marge | alto | derecha | auto | x=-60 | y=-70 | ancho=100 | alto=200
+            [MOSTRAR] Bart | alto | izquierda | auto | ancho=150 | alto=300
+            [MOSTRAR] Lisa | alto | centro | auto | ancho=150 | alto=300
+            [MOSTRAR] Maggie | alto | derecha | auto | ancho=150 | alto=300
+            [PAUSA] 1500
+            """);
+        var small = await tiny.AuditAsync();
+        Assert.Equal(5, small.Count(x => x.Problem == FramingProblem.Small), "todo pequeño: se avisa a los cinco");
+        Assert.Contains("está detrás de", small.First(x => x.Message.StartsWith("Homero")).Message, "dice que está detrás");
+        foreach (var each in small) tiny.Fix(each.BlockId, each.Fixes[0].Changes);
+        Assert.True(!(await tiny.AuditAsync()).Any(x => x.Problem == FramingProblem.Small), "corregidos");
     }
 
     [Test("Encuadre: un personaje solo, o dos a la vez, pequeños frente al cuadro se avisan aunque se parezcan entre sí")]

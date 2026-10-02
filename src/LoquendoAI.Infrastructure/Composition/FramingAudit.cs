@@ -49,7 +49,7 @@ public static class FramingAudit
     private const double Frame = 720;
 
     private sealed record Placed(SceneMedia Clip, SceneScriptBlock Block, string Name, LayerLayout Layout,
-        (double X0, double Y0, double X1, double Y1) Visible, RenderSurface Surface, long Start, long End);
+        (double X0, double Y0, double X1, double Y1) Visible, RenderSurface Surface, long Start, long End, int Order);
 
     public static async Task<IReadOnlyList<FramingIssue>> AuditAsync(IReadOnlyList<SceneScriptBlock> blocks, SceneComposition planned,
         Func<SceneScriptBlock, string> name, CancellationToken token = default)
@@ -59,6 +59,7 @@ public static class FramingAudit
         var spans = VegasBridge.BuildClips(prepared).GroupBy(x => x.BlockId)
             .ToDictionary(x => x.Key, x => (Start: x.Min(y => y.StartMs), End: x.Max(y => y.StartMs + y.DurationMs)));
         var placed = new List<Placed>();
+        var drawOrder = prepared.Media.Select((x, i) => (x.BlockId, i)).ToDictionary(x => x.BlockId, x => x.i); // later = on top
         foreach (var clip in prepared.Media.Where(x => x.Kind is ScriptBlockKind.CharacterShow or ScriptBlockKind.Image))
         {
             token.ThrowIfCancellationRequested();
@@ -70,7 +71,7 @@ public static class FramingAudit
             var surface = await CharacterFraming.SurfaceAsync(clip.Path, token);
             var span = spans.GetValueOrDefault(clip.BlockId, (clip.StartMs, clip.StartMs + Math.Max(1, clip.DurationMs)));
             placed.Add(new Placed(clip, block, name(block), layout, VisibleRect(layout, surface.Solid, width, height), surface,
-                span.Item1, span.Item2));
+                span.Item1, span.Item2, drawOrder[clip.BlockId]));
         }
         var issues = new List<FramingIssue>();
         foreach (var item in placed) if (OutOfFrame(item, prepared) is { } issue) issues.Add(issue);
@@ -259,7 +260,8 @@ public static class FramingAudit
 
     // ------------------------------------------------------------------ sizes
 
-    private const double MinShare = 0.6, MinShareWide = 0.45, PartnerShare = 0.8, PartnerShareWide = 0.65, TargetShare = 0.78;
+    private const double MinShare = 0.6, MinShareWide = 0.45, MinShareBehind = 0.4, PartnerShare = 0.8, PartnerShareWide = 0.65,
+        TargetShare = 0.78;
 
     private static IEnumerable<FramingIssue> Sizes(List<Placed> placed, int lanes)
     {
@@ -270,18 +272,26 @@ public static class FramingAudit
         bool Special(Placed x) => Width(x) > Height(x) * 1.4; // very wide: sitting, lying, with furniture (a standing pony is not)
         bool Together(Placed a, Placed b) => a.Start < b.End && b.Start < a.End;
         Guid Who(Placed x) => x.Clip.CharacterId ?? x.Clip.BlockId;
+        // Behind another character (a back row): drawn under one on screen at the same time that covers part of it,
+        // with the feet higher up. Smaller by design: not compared with the front row, only a lower floor.
+        Placed? InFront(Placed item) => characters.Where(x => Who(x) != Who(item) && Together(x, item) && x.Order > item.Order &&
+                Math.Min(x.Visible.X1, item.Visible.X1) - Math.Max(x.Visible.X0, item.Visible.X0) >= Width(item) * 0.2 &&
+                x.Visible.Y1 > item.Visible.Y1 + 15)
+            .MaxBy(Height);
         foreach (var item in characters)
         {
             var visible = Height(item);
             var special = Special(item);
+            var front = InFront(item);
             // Whoever is on screen at the same time (another character: the render it replaces in a cross-fade is not).
-            var tallest = characters.Where(x => Who(x) != Who(item) && Together(x, item)).MaxBy(Height);
+            var tallest = front is not null ? null : characters.Where(x => Who(x) != Who(item) && Together(x, item)).MaxBy(Height);
             var partner = tallest is null ? 0 : Height(tallest);
-            var floor = Frame * (special ? MinShareWide : MinShare);
+            var floor = Frame * (front is not null ? MinShareBehind : special ? MinShareWide : MinShare);
             var shorter = partner > 0 && visible < partner * (special ? PartnerShareWide : PartnerShare);
             if (visible >= floor && !shorter) continue;
-            // As big as a normal character (or as the tallest beside it), never past the frame.
-            var target = Math.Min(Frame * 0.95, Math.Max(partner, Frame * TargetShare)) * (special ? 0.85 : 1);
+            // As big as a normal character (or as the tallest beside it), never past the frame; behind: just visible enough.
+            var target = front is not null ? Frame * MinShare
+                : Math.Min(Frame * 0.95, Math.Max(partner, Frame * TargetShare)) * (special ? 0.85 : 1);
             var scale = Math.Min(3, target / Math.Max(1, visible));
             if (scale < 1.08) continue;
             var fix = ScaleFix(item.Block, scale);
@@ -292,6 +302,7 @@ public static class FramingAudit
                 ? $"{item.Name} se ve {(int)Math.Round((1 - visible / partner) * 100)} % más pequeño que {tallest!.Name} " +
                   $"({Math.Round(visible).ToString(fmt)} px de alto)"
                 : $"{item.Name} se ve pequeño: {Math.Round(visible).ToString(fmt)} px de alto, el {(int)Math.Round(visible / Frame * 100)} % del cuadro";
+            if (front is not null) message += $" · está detrás de {front.Name}";
             if (special) message += " · render ancho: ajuste prudente";
             // The automatic framing shares the width between the characters on screen: tell why it is narrow.
             if (framing != "original" && lanes > 1 && item.Layout.Width >= item.Clip.VisualMaxWidth - 2 &&

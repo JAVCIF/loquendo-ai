@@ -33,6 +33,8 @@ public sealed record RenderSurface((double X, double Y, double W, double H, doub
 public static class CharacterFraming
 {
     private const int ProbeSize = 256;
+    /// <summary>The width of a lane is that of one in this many (more characters share the places, not the size).</summary>
+    internal const int MaxWidthLanes = 3;
 
     public static async Task<SceneComposition> ApplyAsync(SceneComposition scene, CancellationToken token = default)
     {
@@ -84,7 +86,9 @@ public static class CharacterFraming
             // portrait. Keep the whole image and let the shared camera make a small move.
             var height = style switch { "detalle" when aspect < 1.55 => 560,
                 "detalle" => 610, "medio" => 560, _ => 670 };
-            var width = laneCount == 1 ? 960 : Math.Max(64, 1280 / laneCount - 32);
+            // Never narrower than a third of the frame (1.4.7): with 4 or 5 on screen (some behind others) a lane of
+            // 224–288 px left wide renders tiny; tall renders never reach this width, wide ones may overlap a little.
+            var width = laneCount == 1 ? 960 : 1280 / Math.Min(laneCount, MaxWidthLanes) - 32;
             var position = clip.Position;
             if (position == "auto")
             {

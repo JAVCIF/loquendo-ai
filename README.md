@@ -96,8 +96,10 @@ posición, personajes pequeños, props que casi no se ven e imágenes sin transp
   pantalla, también si todos quedaron pequeños. Los renders muy anchos (sentados, con muebles) tienen más margen.
 - La corrección es la «Escala» del render, que agranda también lo que da el encuadre automático (puede salir un poco
   de su carril). El porcentaje de cada ajuste se puede cambiar.
-- El encuadre automático reparte el ancho entre los personajes que están a la vez; un cruce entre dos renders del
-  mismo personaje cuenta como uno.
+- El encuadre automático reparte el ancho entre los personajes que están a la vez (nunca menos de un tercio del
+  cuadro por personaje); un cruce entre dos renders del mismo personaje cuenta como uno.
+- Un personaje detrás de otro (tapado en parte por uno que se dibuja encima, con los pies más arriba) es más pequeño a
+  propósito: no se compara con los del frente y solo se avisa si queda por debajo del 40 % del alto.
 - Cada escena recuerda lo corregido: al volver se puede cambiar de corrección, deshacerla o marcar «es a propósito».
   Si editas el bloque o cambias el render, se revisa de nuevo.
 - En el Editor, «⤢ Ajustar al cuadro» corrige los campos del bloque abierto antes de guardar. «Escala %» es la escala
